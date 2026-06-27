@@ -1,0 +1,35 @@
+{
+  "name": "taskr-backend",
+  "version": "1.0.0",
+  "description": "TASKR - Production-grade on-demand labor marketplace",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "shared/*"
+  ],
+  "scripts": {
+    "install-all": "npm install --workspaces",
+    "start": "concurrently npm:start:*",
+    "start:auth": "npm --workspace=services/auth-service start",
+    "start:task": "npm --workspace=services/task-service start",
+    "start:worker": "npm --workspace=services/worker-service start",
+    "start:matching": "npm --workspace=services/matching-service start",
+    "start:payment": "npm --workspace=services/payment-service start",
+    "start:notification": "npm --workspace=services/notification-service start",
+    "start:websocket": "npm --workspace=services/websocket-server start",
+    "test": "npm test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "migrate": "npm --workspace=shared run migrate",
+    "seed": "npm --workspace=shared run seed",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "k8s:deploy": "kubectl apply -f kubernetes/",
+    "dev": "docker-compose up"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "nodemon": "^3.0.1"
+  }
+}

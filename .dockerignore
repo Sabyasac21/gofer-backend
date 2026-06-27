@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.env.*
+admin_web/node_modules
+admin_web/dist
+flutter_app/.dart_tool
+flutter_app/build
+flutter_app/android/.gradle
+storage
+ssl
+node_modules
+coverage
+tmp
+temp
