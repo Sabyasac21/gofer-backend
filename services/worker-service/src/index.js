@@ -12,6 +12,13 @@ const { errorHandler } = require('../../../shared/utils/errorHandler');
 const pool = require('./config/db');
 const { saveWorkerDocument } = require('./services/documentStorage');
 const { buildMockHyperVergeResult } = require('./services/kycProvider');
+const {
+  initializeMessaging,
+  ensureDispatchSchema,
+  updatePresence,
+  dispatchJob,
+  respondToJob,
+} = require('./services/jobDispatch');
 
 const app = express();
 
@@ -117,6 +124,55 @@ app.get('/api/workers/verified', async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+app.post('/api/workers/presence', async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
+      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+      online: Joi.boolean().required(),
+      fcmToken: Joi.string().max(4096).allow('', null),
+      platform: Joi.string().valid('android', 'ios').default('android'),
+      latitude: Joi.number().min(-90).max(90).allow(null),
+      longitude: Joi.number().min(-180).max(180).allow(null),
+    }).validate(req.body, { stripUnknown: true });
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    const presence = await updatePresence(pool, value);
+    if (!presence) return res.status(404).json({ success: false, message: 'Verified worker not found' });
+    res.json({ success: true, presence });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/jobs/dispatch', async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
+      customerTaskId: Joi.string().max(120).required(),
+      serviceType: Joi.string().valid('helper', 'professional').required(),
+      category: Joi.string().trim().max(120).required(),
+      title: Joi.string().trim().max(160).required(),
+      notes: Joi.string().allow('', null).max(1000),
+      address: Joi.string().trim().max(500).required(),
+      latitude: Joi.number().min(-90).max(90).required(),
+      longitude: Joi.number().min(-180).max(180).required(),
+      budget: Joi.number().integer().min(1).max(1000000).required(),
+    }).validate(req.body, { stripUnknown: true });
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    const dispatch = await dispatchJob(pool, value);
+    res.status(201).json({ success: true, dispatch });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/jobs/:id/respond', async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
+      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+      decision: Joi.string().valid('accepted', 'rejected').required(),
+    }).validate(req.body, { stripUnknown: true });
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    const response = await respondToJob(pool, req.params.id, value.phone, value.decision);
+    if (!response) return res.status(404).json({ success: false, message: 'Active job offer not found' });
+    res.json({ success: true, response });
+  } catch (error) { next(error); }
 });
 
 app.get('/api/workers/enrollments/status', async (req, res, next) => {
@@ -791,6 +847,8 @@ const PORT = process.env.PORT || 3003;
 
 const startServer = async () => {
   try {
+    await ensureDispatchSchema(pool);
+    initializeMessaging(logger);
     app.listen(PORT, () => {
       logger.info(`Worker Service running on port ${PORT}`);
       logger.info(`Service ID: ${uuidv4()}`);
