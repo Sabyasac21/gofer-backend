@@ -106,7 +106,10 @@ async function dispatchJob(pool, value) {
       JOIN worker_presence wp ON wp.worker_enrollment_id = we.id
       WHERE we.worker_status = 'verified'
         AND wp.online = TRUE
-        AND wp.last_seen_at > NOW() - INTERVAL '3 minutes'
+        -- Android may suspend the Flutter process while the worker app is in
+        -- the background. Keep an explicit "online" choice valid for a work
+        -- shift; the app refreshes this lease every minute while foregrounded.
+        AND wp.last_seen_at > NOW() - INTERVAL '12 hours'
         AND wp.latitude IS NOT NULL AND wp.longitude IS NOT NULL
         AND (
           ($3 = 'helper' AND 'helper' = ANY(we.enrollment_types)) OR
