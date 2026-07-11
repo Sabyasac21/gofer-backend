@@ -73,6 +73,52 @@ app.get('/api/workers/me', (req, res) => {
   });
 });
 
+// Public customer-safe worker directory. This intentionally excludes phone,
+// documents, KYC provider details, and other enrollment PII.
+app.get('/api/workers/verified', async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `
+        SELECT
+          id,
+          full_name AS "fullName",
+          enrollment_types AS "enrollmentTypes",
+          professional_categories AS "professionalCategories",
+          travel_radius_km AS "travelRadiusKm"
+        FROM worker_enrollments
+        WHERE worker_status = 'verified'
+        ORDER BY updated_at DESC
+        LIMIT 200
+      `
+    );
+
+    res.json({
+      success: true,
+      workers: result.rows.map((worker) => ({
+        id: worker.id,
+        name: worker.fullName,
+        workerType: worker.enrollmentTypes?.includes('professional')
+          ? 'professional'
+          : 'helper',
+        enrollmentTypes: worker.enrollmentTypes || [],
+        professionalCategories: worker.professionalCategories || [],
+        skill: worker.professionalCategories?.[0] || 'General helper',
+        travelRadiusKm: worker.travelRadiusKm,
+        verified: true,
+        availability: false,
+        locationVerified: false,
+        rating: 0,
+        jobsCompleted: 0,
+        distanceKm: 0,
+        etaMinutes: 0,
+        hourlyRate: 0
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/workers/enrollments/status', async (req, res, next) => {
   try {
     const { error, value } = Joi.object({
