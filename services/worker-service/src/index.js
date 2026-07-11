@@ -18,6 +18,7 @@ const {
   updatePresence,
   dispatchJob,
   respondToJob,
+  getDispatchStatus,
 } = require('./services/jobDispatch');
 
 const app = express();
@@ -172,6 +173,18 @@ app.post('/api/jobs/:id/respond', async (req, res, next) => {
     const response = await respondToJob(pool, req.params.id, value.phone, value.decision);
     if (!response) return res.status(404).json({ success: false, message: 'Active job offer not found' });
     res.json({ success: true, response });
+  } catch (error) { next(error); }
+});
+
+app.get('/api/jobs/customer-task/:customerTaskId', async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
+      customerTaskId: Joi.string().uuid().required(),
+    }).validate(req.params, { stripUnknown: true });
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    const dispatch = await getDispatchStatus(pool, value.customerTaskId);
+    if (!dispatch) return res.status(404).json({ success: false, message: 'Dispatch not found' });
+    res.json({ success: true, dispatch });
   } catch (error) { next(error); }
 });
 

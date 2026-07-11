@@ -178,4 +178,60 @@ async function respondToJob(pool, jobId, phone, decision) {
   finally { client.release(); }
 }
 
-module.exports = { initializeMessaging, ensureDispatchSchema, updatePresence, dispatchJob, respondToJob };
+async function getDispatchStatus(pool, customerTaskId) {
+  await pool.query(`
+    UPDATE worker_job_dispatches
+    SET status = 'expired'
+    WHERE customer_task_id = $1 AND status = 'offered' AND expires_at <= NOW()
+  `, [customerTaskId]);
+  const result = await pool.query(`
+    SELECT
+      d.id, d.customer_task_id, d.status, d.category, d.budget,
+      d.created_at, d.expires_at,
+      we.id AS worker_id, we.full_name,
+      we.enrollment_types, we.professional_categories,
+      wp.latitude, wp.longitude,
+      (SELECT COUNT(*)::int FROM worker_job_offers o WHERE o.job_id = d.id) AS offer_count
+    FROM worker_job_dispatches d
+    LEFT JOIN worker_enrollments we ON we.id = d.accepted_worker_id
+    LEFT JOIN worker_presence wp ON wp.worker_enrollment_id = we.id
+    WHERE d.customer_task_id = $1
+    ORDER BY d.created_at DESC
+    LIMIT 1
+  `, [customerTaskId]);
+  if (!result.rowCount) return null;
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    customerTaskId: row.customer_task_id,
+    status: row.status,
+    offerCount: row.offer_count,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+    worker: row.worker_id ? {
+      id: row.worker_id,
+      name: row.full_name,
+      workerType: row.enrollment_types?.includes('professional') ? 'professional' : 'helper',
+      skill: row.professional_categories?.[0] || row.category || 'General helper',
+      verified: true,
+      availability: true,
+      locationVerified: row.latitude != null && row.longitude != null,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      rating: 0,
+      jobsCompleted: 0,
+      distanceKm: 0,
+      etaMinutes: 0,
+      hourlyRate: row.budget,
+    } : null,
+  };
+}
+
+module.exports = {
+  initializeMessaging,
+  ensureDispatchSchema,
+  updatePresence,
+  dispatchJob,
+  respondToJob,
+  getDispatchStatus,
+};
