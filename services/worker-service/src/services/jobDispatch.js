@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
+const { previousStatusesFor } = require('./jobLifecycle');
 
 let messaging = null;
 
@@ -111,6 +112,11 @@ async function dispatchJob(pool, value) {
         -- shift; the app refreshes this lease every minute while foregrounded.
         AND wp.last_seen_at > NOW() - INTERVAL '12 hours'
         AND wp.latitude IS NOT NULL AND wp.longitude IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM worker_job_dispatches active_job
+          WHERE active_job.accepted_worker_id = we.id
+            AND active_job.status IN ('accepted', 'arrived', 'started')
+        )
         AND (
           ($3 = 'helper' AND 'helper' = ANY(we.enrollment_types)) OR
           ($3 = 'professional' AND 'professional' = ANY(we.enrollment_types)
@@ -230,6 +236,63 @@ async function getDispatchStatus(pool, customerTaskId) {
   };
 }
 
+async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query(`
+      UPDATE worker_job_dispatches
+      SET status = $2
+      WHERE customer_task_id = $1
+        AND status IN ('offered', 'accepted', 'arrived', 'started')
+      RETURNING id, customer_task_id AS "customerTaskId", status
+    `, [customerTaskId, status]);
+    if (result.rowCount) {
+      await client.query(`
+        UPDATE worker_job_offers
+        SET status = CASE WHEN status = 'offered' THEN 'expired' ELSE status END,
+            responded_at = COALESCE(responded_at, NOW())
+        WHERE job_id = $1
+      `, [result.rows[0].id]);
+    }
+    await client.query('COMMIT');
+    return result.rows[0] || null;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function updateJobStatusByWorker(pool, jobId, phone, nextStatus) {
+  const worker = await pool.query(
+    'SELECT id FROM worker_enrollments WHERE phone=$1 LIMIT 1',
+    [phone]
+  );
+  if (!worker.rowCount) return null;
+  const allowedPrevious = previousStatusesFor(nextStatus);
+  const result = await pool.query(`
+    UPDATE worker_job_dispatches
+    SET status = $3
+    WHERE id = $1 AND accepted_worker_id = $2
+      AND status = ANY($4::varchar[])
+    RETURNING id, customer_task_id AS "customerTaskId", status
+  `, [jobId, worker.rows[0].id, nextStatus, allowedPrevious]);
+  return result.rows[0] || null;
+}
+
+async function getWorkerJobStatus(pool, jobId, phone) {
+  const result = await pool.query(`
+    SELECT d.id, d.customer_task_id AS "customerTaskId", d.status
+    FROM worker_job_dispatches d
+    JOIN worker_enrollments we ON we.id = d.accepted_worker_id
+    WHERE d.id = $1 AND we.phone = $2
+    LIMIT 1
+  `, [jobId, phone]);
+  return result.rows[0] || null;
+}
+
 module.exports = {
   initializeMessaging,
   ensureDispatchSchema,
@@ -237,4 +300,7 @@ module.exports = {
   dispatchJob,
   respondToJob,
   getDispatchStatus,
+  updateJobStatusByCustomerTask,
+  updateJobStatusByWorker,
+  getWorkerJobStatus,
 };

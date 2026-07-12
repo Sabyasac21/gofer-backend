@@ -19,6 +19,9 @@ const {
   dispatchJob,
   respondToJob,
   getDispatchStatus,
+  updateJobStatusByCustomerTask,
+  updateJobStatusByWorker,
+  getWorkerJobStatus,
 } = require('./services/jobDispatch');
 
 const app = express();
@@ -185,6 +188,55 @@ app.get('/api/jobs/customer-task/:customerTaskId', async (req, res, next) => {
     const dispatch = await getDispatchStatus(pool, value.customerTaskId);
     if (!dispatch) return res.status(404).json({ success: false, message: 'Dispatch not found' });
     res.json({ success: true, dispatch });
+  } catch (error) { next(error); }
+});
+
+app.patch('/api/jobs/customer-task/:customerTaskId/status', async (req, res, next) => {
+  try {
+    const params = Joi.object({ customerTaskId: Joi.string().uuid().required() })
+      .validate(req.params, { stripUnknown: true });
+    const body = Joi.object({ status: Joi.string().valid('completed', 'cancelled').required() })
+      .validate(req.body, { stripUnknown: true });
+    if (params.error || body.error) {
+      return res.status(400).json({ success: false, message: (params.error || body.error).message });
+    }
+    const job = await updateJobStatusByCustomerTask(
+      pool, params.value.customerTaskId, body.value.status
+    );
+    if (!job) return res.status(404).json({ success: false, message: 'Active dispatch not found' });
+    res.json({ success: true, job });
+  } catch (error) { next(error); }
+});
+
+app.get('/api/jobs/:id/status', async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
+      id: Joi.string().uuid().required(),
+      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+    }).validate({ ...req.params, ...req.query }, { stripUnknown: true });
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    const job = await getWorkerJobStatus(pool, value.id, value.phone);
+    if (!job) return res.status(404).json({ success: false, message: 'Accepted job not found' });
+    res.json({ success: true, job });
+  } catch (error) { next(error); }
+});
+
+app.patch('/api/jobs/:id/status', async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
+      id: Joi.string().uuid().required(),
+      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+      status: Joi.string().valid('arrived', 'started', 'completed').required(),
+    }).validate({ ...req.params, ...req.body }, { stripUnknown: true });
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    const job = await updateJobStatusByWorker(pool, value.id, value.phone, value.status);
+    if (!job) {
+      return res.status(409).json({
+        success: false,
+        message: 'Invalid job transition or this job is no longer active',
+      });
+    }
+    res.json({ success: true, job });
   } catch (error) { next(error); }
 });
 
