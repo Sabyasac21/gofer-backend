@@ -284,9 +284,12 @@ async function updateJobStatusByWorker(pool, jobId, phone, nextStatus) {
 
 async function getWorkerJobStatus(pool, jobId, phone) {
   const result = await pool.query(`
-    SELECT d.id, d.customer_task_id AS "customerTaskId", d.status
+    SELECT d.id, d.customer_task_id AS "customerTaskId", d.status,
+      o.status AS "offerStatus",
+      (d.accepted_worker_id = we.id) AS "isAcceptedWorker"
     FROM worker_job_dispatches d
-    JOIN worker_enrollments we ON we.id = d.accepted_worker_id
+    JOIN worker_job_offers o ON o.job_id = d.id
+    JOIN worker_enrollments we ON we.id = o.worker_enrollment_id
     WHERE d.id = $1 AND we.phone = $2
     LIMIT 1
   `, [jobId, phone]);
