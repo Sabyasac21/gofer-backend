@@ -89,6 +89,24 @@ async function dispatchJob(pool, value) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const existing = await client.query(`
+      SELECT id, status
+      FROM worker_job_dispatches
+      WHERE customer_task_id = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+      FOR UPDATE
+    `, [value.customerTaskId]);
+    if (existing.rowCount) {
+      await client.query('COMMIT');
+      return {
+        id: existing.rows[0].id,
+        status: existing.rows[0].status,
+        matchedWorkers: 0,
+        push: { configured: Boolean(messaging), attempted: 0, succeeded: 0 },
+        existing: true,
+      };
+    }
     const job = await client.query(`
       INSERT INTO worker_job_dispatches (
         customer_task_id, service_type, category, title, notes, address_text,
