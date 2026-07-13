@@ -1,10 +1,17 @@
 const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
 const { previousStatusesFor } = require('./jobLifecycle');
+const {
+  messagingErrorCode,
+  summarizeMessagingResponses,
+} = require('./firebaseDiagnostics');
 
 let messaging = null;
+let messagingLogger = console;
+let messagingProjectId = null;
 
 function initializeMessaging(logger) {
+  messagingLogger = logger || console;
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (!raw) {
     logger.warn('FIREBASE_SERVICE_ACCOUNT_JSON is not configured; push delivery is disabled');
@@ -12,10 +19,14 @@ function initializeMessaging(logger) {
   }
   try {
     const credential = JSON.parse(raw);
+    messagingProjectId = credential.project_id || null;
     const app = admin.apps.length
       ? admin.app()
       : admin.initializeApp({ credential: admin.credential.cert(credential) });
     messaging = app.messaging();
+    messagingLogger.info('Firebase Admin messaging initialized', {
+      projectId: messagingProjectId,
+    });
   } catch (error) {
     logger.error('Firebase Admin initialization failed', { error: error.message });
   }
@@ -125,6 +136,7 @@ async function dispatchJob(pool, value) {
       JOIN worker_presence wp ON wp.worker_enrollment_id = we.id
       WHERE we.worker_status = 'verified'
         AND wp.online = TRUE
+        AND wp.fcm_token IS NOT NULL AND wp.fcm_token <> ''
         -- Android may suspend the Flutter process while the worker app is in
         -- the background. Keep an explicit "online" choice valid for a work
         -- shift; the app refreshes this lease every minute while foregrounded.
@@ -155,22 +167,56 @@ async function dispatchJob(pool, value) {
     }
     await client.query('COMMIT');
 
-    const tokens = candidates.rows.map((row) => row.fcm_token).filter(Boolean);
+    const recipients = candidates.rows.filter((row) => Boolean(row.fcm_token));
+    const tokens = recipients.map((row) => row.fcm_token);
     let push = { configured: Boolean(messaging), attempted: tokens.length, succeeded: 0 };
     if (messaging && tokens.length) {
-      const response = await messaging.sendEachForMulticast({
-        tokens,
-        notification: { title: 'New Gofer job nearby', body: `${value.title} · Rs ${value.budget}` },
-        data: {
-          type: 'job_offer', jobId: job.rows[0].id, workType: value.category,
-          customerArea: value.address, notes: value.notes || '', budget: String(value.budget)
-        },
-        android: {
-          priority: 'high',
-          notification: { channelId: 'gofer_jobs', sound: 'default', priority: 'max', visibility: 'public' }
+      try {
+        const response = await messaging.sendEachForMulticast({
+          tokens,
+          notification: { title: 'New Gofer job nearby', body: `${value.title} · Rs ${value.budget}` },
+          data: {
+            type: 'job_offer', jobId: job.rows[0].id, workType: value.category,
+            customerArea: value.address, notes: value.notes || '', budget: String(value.budget)
+          },
+          android: {
+            priority: 'high',
+            notification: { channelId: 'gofer_jobs', sound: 'default', priority: 'max', visibility: 'public' }
+          }
+        });
+        push.succeeded = response.successCount;
+        const summary = summarizeMessagingResponses(response, recipients);
+        if (summary.failures.length) {
+          push.failureCodes = summary.failureCodes;
+          messagingLogger.warn('Firebase job push delivery failed', {
+            jobId: job.rows[0].id,
+            projectId: messagingProjectId,
+            attempted: tokens.length,
+            succeeded: response.successCount,
+            failures: summary.failures,
+          });
+
+          const invalidWorkerIds = summary.failures
+            .filter((failure) => failure.invalidToken && failure.workerId)
+            .map((failure) => failure.workerId);
+          if (invalidWorkerIds.length) {
+            await client.query(`
+              UPDATE worker_presence
+              SET fcm_token = NULL, online = FALSE, updated_at = NOW()
+              WHERE worker_enrollment_id = ANY($1::uuid[])
+            `, [invalidWorkerIds]);
+          }
         }
-      });
-      push.succeeded = response.successCount;
+      } catch (error) {
+        const code = messagingErrorCode(error);
+        push.failureCodes = { [code]: tokens.length };
+        messagingLogger.error('Firebase job push request failed', {
+          jobId: job.rows[0].id,
+          projectId: messagingProjectId,
+          attempted: tokens.length,
+          code,
+        });
+      }
     }
     return { id: job.rows[0].id, matchedWorkers: candidates.rowCount, push };
   } catch (error) {
