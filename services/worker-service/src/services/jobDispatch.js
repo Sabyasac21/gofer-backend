@@ -87,6 +87,25 @@ async function updatePresence(pool, value) {
     [value.phone]
   );
   if (!worker.rowCount) return null;
+  if (!value.online) {
+    const activeJob = await pool.query(`
+      SELECT id, status
+      FROM worker_job_dispatches
+      WHERE accepted_worker_id = $1
+        AND status IN ('accepted', 'arrived', 'started')
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [worker.rows[0].id]);
+    if (activeJob.rowCount) {
+      return {
+        workerId: worker.rows[0].id,
+        online: true,
+        blockedByActiveJob: true,
+        activeJobId: activeJob.rows[0].id,
+        activeJobStatus: activeJob.rows[0].status,
+      };
+    }
+  }
   const result = await pool.query(`
     INSERT INTO worker_presence (
       worker_enrollment_id, fcm_token, platform, online, latitude, longitude, last_seen_at, updated_at

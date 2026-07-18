@@ -17,6 +17,12 @@ test('allows only sequential worker progress', () => {
   }
 });
 
+test('worker may cancel before work starts but not after starting', () => {
+  assert.equal(canWorkerTransition('accepted', 'cancelled'), true);
+  assert.equal(canWorkerTransition('arrived', 'cancelled'), true);
+  assert.equal(canWorkerTransition('started', 'cancelled'), false);
+});
+
 test('rejects skipped and reversed worker transitions', () => {
   for (const [current, next] of [
     ['accepted', 'completed'],
@@ -112,4 +118,8 @@ test('pending job recovery returns the active offer for the worker phone', async
   assert.equal(result.id, 'job-1');
   assert.match(calls[2].sql, /d\.expires_at > NOW\(\)/);
   assert.match(calls[2].sql, /d\.accepted_worker_id = we\.id/);
+  assert.match(
+    calls[2].sql,
+    /CASE WHEN d\.status = 'offered' THEN d\.expires_at ELSE NULL END/,
+  );
 });

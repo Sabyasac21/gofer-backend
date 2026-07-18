@@ -1,6 +1,6 @@
 const WORKER_JOB_TRANSITIONS = Object.freeze({
-  accepted: ['arrived'],
-  arrived: ['started'],
+  accepted: ['arrived', 'cancelled'],
+  arrived: ['started', 'cancelled'],
   started: ['completed'],
 });
 

@@ -255,7 +255,9 @@ app.patch('/api/jobs/:id/status', async (req, res, next) => {
     const { error, value } = Joi.object({
       id: Joi.string().uuid().required(),
       phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
-      status: Joi.string().valid('arrived', 'started', 'completed').required(),
+      status: Joi.string()
+        .valid('arrived', 'started', 'completed', 'cancelled')
+        .required(),
     }).validate({ ...req.params, ...req.body }, { stripUnknown: true });
     if (error) return res.status(400).json({ success: false, message: error.message });
     const job = await updateJobStatusByWorker(pool, value.id, value.phone, value.status);

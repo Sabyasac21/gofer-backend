@@ -28,7 +28,8 @@ async function getPendingWorkerJob(pool, phone) {
       d.budget AS "payMax",
       COALESCE(d.notes, '') AS notes,
       d.status,
-      d.expires_at AS "expiresAt"
+      CASE WHEN d.status = 'offered' THEN d.expires_at ELSE NULL END
+        AS "expiresAt"
     FROM worker_enrollments we
     JOIN worker_job_offers o ON o.worker_enrollment_id = we.id
     JOIN worker_job_dispatches d ON d.id = o.job_id
