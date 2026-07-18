@@ -23,6 +23,7 @@ const {
   updateJobStatusByCustomerTask,
   updateJobStatusByWorker,
   getWorkerJobStatus,
+  getPendingWorkerJob,
 } = require('./services/jobDispatch');
 
 const app = express();
@@ -177,6 +178,21 @@ app.post('/api/jobs/dispatch', async (req, res, next) => {
     const dispatch = await dispatchJob(pool, value);
     res.status(201).json({ success: true, dispatch });
   } catch (error) { next(error); }
+});
+
+app.get('/api/jobs/pending', async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
+      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+    }).validate(req.query, { stripUnknown: true });
+    if (error) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    const job = await getPendingWorkerJob(pool, value.phone);
+    res.json({ success: true, job });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.post('/api/jobs/:id/respond', async (req, res, next) => {

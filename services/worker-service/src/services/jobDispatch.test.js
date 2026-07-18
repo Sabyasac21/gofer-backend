@@ -5,6 +5,7 @@ const {
   summarizeMessagingResponses,
   isInvalidRegistrationToken,
 } = require('./firebaseDiagnostics');
+const { getPendingWorkerJob } = require('./pendingJob');
 
 test('allows only sequential worker progress', () => {
   for (const [current, next] of [
@@ -80,4 +81,35 @@ test('only definitive Firebase registration errors retire a worker token', () =>
   assert.equal(isInvalidRegistrationToken('messaging/registration-token-not-registered'), true);
   assert.equal(isInvalidRegistrationToken('messaging/mismatched-credential'), false);
   assert.equal(isInvalidRegistrationToken('messaging/server-unavailable'), false);
+});
+
+test('pending job recovery returns the active offer for the worker phone', async () => {
+  const recovered = {
+    id: 'job-1',
+    workType: 'Cleaning',
+    customerArea: 'Sector 62',
+    distanceKm: 1.2,
+    durationLabel: 'New request',
+    payMin: 500,
+    payMax: 500,
+    notes: '',
+    status: 'offered',
+    expiresAt: new Date(Date.now() + 120000),
+  };
+  const calls = [];
+  const pool = {
+    async query(sql, values) {
+      calls.push({ sql, values });
+      if (calls.length < 3) return { rowCount: 0, rows: [] };
+      return { rowCount: 1, rows: [recovered] };
+    },
+  };
+
+  const result = await getPendingWorkerJob(pool, '9876543210');
+
+  assert.equal(calls.length, 3);
+  assert.deepEqual(calls[2].values, ['9876543210']);
+  assert.equal(result.id, 'job-1');
+  assert.match(calls[2].sql, /d\.expires_at > NOW\(\)/);
+  assert.match(calls[2].sql, /d\.accepted_worker_id = we\.id/);
 });

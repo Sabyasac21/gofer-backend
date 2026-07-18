@@ -1,6 +1,7 @@
 const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
 const { previousStatusesFor } = require('./jobLifecycle');
+const { getPendingWorkerJob } = require('./pendingJob');
 const {
   messagingErrorCode,
   summarizeMessagingResponses,
@@ -249,18 +250,26 @@ async function dispatchJob(pool, value) {
     let push = { configured: Boolean(messaging), attempted: tokens.length, succeeded: 0 };
     if (messaging && tokens.length) {
       try {
-        const response = await messaging.sendEachForMulticast({
-          tokens,
+        const expiresAt = new Date(job.rows[0].expires_at).toISOString();
+        const response = await messaging.sendEach(recipients.map((recipient) => ({
+          token: recipient.fcm_token,
           notification: { title: 'New Gofer job nearby', body: `${value.title} · Rs ${value.budget}` },
           data: {
             type: 'job_offer', jobId: job.rows[0].id, workType: value.category,
-            customerArea: value.address, notes: value.notes || '', budget: String(value.budget)
+            customerArea: value.address,
+            distanceKm: Number(recipient.distance_km).toFixed(1),
+            durationLabel: 'New request',
+            notes: value.notes || '',
+            budget: String(value.budget),
+            status: 'offered',
+            expiresAt,
           },
           android: {
             priority: 'high',
-            notification: { channelId: 'gofer_jobs', sound: 'default', priority: 'max', visibility: 'public' }
+            ttl: 120000,
+            notification: { channelId: 'gofer_jobs_v2', sound: 'default', priority: 'max', visibility: 'public' }
           }
-        });
+        })));
         push.succeeded = response.successCount;
         const summary = summarizeMessagingResponses(response, recipients);
         if (summary.failures.length) {
@@ -453,4 +462,5 @@ module.exports = {
   updateJobStatusByCustomerTask,
   updateJobStatusByWorker,
   getWorkerJobStatus,
+  getPendingWorkerJob,
 };
