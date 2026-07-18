@@ -163,6 +163,7 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-taskr_user}:${DB_PASSWORD:-secure_password}@postgres:5432/${DB_NAME:-taskr_db}
       REDIS_URL: redis://redis:6379
       WORKER_ADMIN_KEY: ${WORKER_ADMIN_KEY:-change-me-worker-admin-key}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
     ports:
       - "3003:3003"
     depends_on:

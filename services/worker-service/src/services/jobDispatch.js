@@ -32,6 +32,13 @@ function initializeMessaging(logger) {
   }
 }
 
+function getMessagingStatus() {
+  return {
+    configured: Boolean(messaging),
+    projectId: messagingProjectId,
+  };
+}
+
 async function ensureDispatchSchema(pool) {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS worker_presence (
@@ -96,10 +103,79 @@ async function updatePresence(pool, value) {
   return result.rows[0];
 }
 
+async function getMatchDiagnostics(client, value) {
+  const result = await client.query(`
+    WITH evaluated AS (
+      SELECT
+        we.id,
+        (wp.worker_enrollment_id IS NOT NULL) AS has_presence,
+        (wp.online = TRUE) AS is_online,
+        (wp.last_seen_at > NOW() - INTERVAL '12 hours') AS is_fresh,
+        (wp.fcm_token IS NOT NULL AND wp.fcm_token <> '') AS has_token,
+        (wp.latitude IS NOT NULL AND wp.longitude IS NOT NULL) AS has_location,
+        (
+          ($3 = 'helper' AND 'helper' = ANY(we.enrollment_types)) OR
+          ($3 = 'professional' AND 'professional' = ANY(we.enrollment_types)
+            AND EXISTS (
+              SELECT 1 FROM unnest(we.professional_categories) category
+              WHERE LOWER(category) = LOWER($4)
+            ))
+        ) AS matches_service,
+        NOT EXISTS (
+          SELECT 1 FROM worker_job_dispatches active_job
+          WHERE active_job.accepted_worker_id = we.id
+            AND active_job.status IN ('accepted', 'arrived', 'started')
+        ) AS is_available,
+        CASE
+          WHEN wp.latitude IS NULL OR wp.longitude IS NULL THEN NULL
+          ELSE 6371 * 2 * ASIN(SQRT(
+            POWER(SIN(RADIANS(wp.latitude - $1) / 2), 2) +
+            COS(RADIANS($1)) * COS(RADIANS(wp.latitude)) *
+            POWER(SIN(RADIANS(wp.longitude - $2) / 2), 2)
+          ))
+        END AS distance_km,
+        we.travel_radius_km
+      FROM worker_enrollments we
+      LEFT JOIN worker_presence wp ON wp.worker_enrollment_id = we.id
+      WHERE we.worker_status = 'verified'
+    )
+    SELECT
+      COUNT(*)::int AS "verifiedWorkers",
+      COUNT(*) FILTER (WHERE has_presence)::int AS "withPresence",
+      COUNT(*) FILTER (WHERE has_presence AND is_online)::int AS "online",
+      COUNT(*) FILTER (
+        WHERE has_presence AND is_online AND is_fresh
+      )::int AS "fresh",
+      COUNT(*) FILTER (
+        WHERE has_presence AND is_online AND is_fresh AND has_token
+      )::int AS "tokenReady",
+      COUNT(*) FILTER (
+        WHERE has_presence AND is_online AND is_fresh AND has_token
+          AND has_location
+      )::int AS "locationReady",
+      COUNT(*) FILTER (
+        WHERE has_presence AND is_online AND is_fresh AND has_token
+          AND has_location AND matches_service
+      )::int AS "serviceEligible",
+      COUNT(*) FILTER (
+        WHERE has_presence AND is_online AND is_fresh AND has_token
+          AND has_location AND matches_service AND is_available
+      )::int AS "available",
+      COUNT(*) FILTER (
+        WHERE has_presence AND is_online AND is_fresh AND has_token
+          AND has_location AND matches_service AND is_available
+          AND distance_km <= travel_radius_km
+      )::int AS "withinTravelRadius"
+    FROM evaluated
+  `, [value.latitude, value.longitude, value.serviceType, value.category]);
+  return result.rows[0];
+}
+
 async function dispatchJob(pool, value) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const matchDiagnostics = await getMatchDiagnostics(client, value);
     const existing = await client.query(`
       SELECT id, status
       FROM worker_job_dispatches
@@ -114,6 +190,7 @@ async function dispatchJob(pool, value) {
         id: existing.rows[0].id,
         status: existing.rows[0].status,
         matchedWorkers: 0,
+        matchDiagnostics,
         push: { configured: Boolean(messaging), attempted: 0, succeeded: 0 },
         existing: true,
       };
@@ -218,7 +295,12 @@ async function dispatchJob(pool, value) {
         });
       }
     }
-    return { id: job.rows[0].id, matchedWorkers: candidates.rowCount, push };
+    return {
+      id: job.rows[0].id,
+      matchedWorkers: candidates.rowCount,
+      matchDiagnostics,
+      push,
+    };
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -362,6 +444,7 @@ async function getWorkerJobStatus(pool, jobId, phone) {
 
 module.exports = {
   initializeMessaging,
+  getMessagingStatus,
   ensureDispatchSchema,
   updatePresence,
   dispatchJob,

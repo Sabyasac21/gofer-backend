@@ -14,6 +14,7 @@ const { saveWorkerDocument } = require('./services/documentStorage');
 const { buildMockHyperVergeResult } = require('./services/kycProvider');
 const {
   initializeMessaging,
+  getMessagingStatus,
   ensureDispatchSchema,
   updatePresence,
   dispatchJob,
@@ -65,6 +66,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     service: 'worker-service',
+    push: getMessagingStatus(),
     timestamp: new Date().toISOString()
   });
 });
@@ -91,14 +93,24 @@ app.get('/api/workers/verified', async (req, res, next) => {
     const result = await pool.query(
       `
         SELECT
-          id,
-          full_name AS "fullName",
-          enrollment_types AS "enrollmentTypes",
-          professional_categories AS "professionalCategories",
-          travel_radius_km AS "travelRadiusKm"
-        FROM worker_enrollments
-        WHERE worker_status = 'verified'
-        ORDER BY updated_at DESC
+          we.id,
+          we.full_name AS "fullName",
+          we.enrollment_types AS "enrollmentTypes",
+          we.professional_categories AS "professionalCategories",
+          we.travel_radius_km AS "travelRadiusKm",
+          (
+            wp.online = TRUE
+            AND wp.last_seen_at > NOW() - INTERVAL '12 hours'
+            AND wp.fcm_token IS NOT NULL
+            AND wp.fcm_token <> ''
+          ) AS "availability",
+          (wp.latitude IS NOT NULL AND wp.longitude IS NOT NULL)
+            AS "locationVerified",
+          wp.last_seen_at AS "lastSeenAt"
+        FROM worker_enrollments we
+        LEFT JOIN worker_presence wp ON wp.worker_enrollment_id = we.id
+        WHERE we.worker_status = 'verified'
+        ORDER BY we.updated_at DESC
         LIMIT 200
       `
     );
@@ -116,8 +128,9 @@ app.get('/api/workers/verified', async (req, res, next) => {
         skill: worker.professionalCategories?.[0] || 'General helper',
         travelRadiusKm: worker.travelRadiusKm,
         verified: true,
-        availability: false,
-        locationVerified: false,
+        availability: worker.availability === true,
+        locationVerified: worker.locationVerified === true,
+        lastSeenAt: worker.lastSeenAt,
         rating: 0,
         jobsCompleted: 0,
         distanceKm: 0,
