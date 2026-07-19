@@ -52,8 +52,31 @@ async function ensureDispatchSchema(pool) {
       latitude DOUBLE PRECISION,
       longitude DOUBLE PRECISION,
       last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      online_since TIMESTAMPTZ,
+      last_offline_at TIMESTAMPTZ,
+      location_updated_at TIMESTAMPTZ,
+      token_updated_at TIMESTAMPTZ
     );
+    ALTER TABLE worker_presence
+      ADD COLUMN IF NOT EXISTS online_since TIMESTAMPTZ;
+    ALTER TABLE worker_presence
+      ADD COLUMN IF NOT EXISTS last_offline_at TIMESTAMPTZ;
+    ALTER TABLE worker_presence
+      ADD COLUMN IF NOT EXISTS location_updated_at TIMESTAMPTZ;
+    ALTER TABLE worker_presence
+      ADD COLUMN IF NOT EXISTS token_updated_at TIMESTAMPTZ;
+    UPDATE worker_presence
+      SET online_since = COALESCE(online_since, last_seen_at)
+      WHERE online = TRUE AND online_since IS NULL;
+    UPDATE worker_presence
+      SET location_updated_at = COALESCE(location_updated_at, last_seen_at)
+      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+        AND location_updated_at IS NULL;
+    UPDATE worker_presence
+      SET token_updated_at = COALESCE(token_updated_at, last_seen_at)
+      WHERE fcm_token IS NOT NULL AND fcm_token <> ''
+        AND token_updated_at IS NULL;
     CREATE INDEX IF NOT EXISTS worker_presence_online_idx
       ON worker_presence(online, last_seen_at DESC);
     CREATE TABLE IF NOT EXISTS worker_job_dispatches (
@@ -114,16 +137,50 @@ async function updatePresence(pool, value) {
   }
   const result = await pool.query(`
     INSERT INTO worker_presence (
-      worker_enrollment_id, fcm_token, platform, online, latitude, longitude, last_seen_at, updated_at
-    ) VALUES ($1,$2,$3,$4,$5,$6,NOW(),NOW())
+      worker_enrollment_id, fcm_token, platform, online, latitude, longitude,
+      last_seen_at, updated_at, online_since, last_offline_at,
+      location_updated_at, token_updated_at
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,NOW(),NOW(),
+      CASE WHEN $4 THEN NOW() ELSE NULL END,
+      CASE WHEN NOT $4 THEN NOW() ELSE NULL END,
+      CASE WHEN $5 IS NOT NULL AND $6 IS NOT NULL THEN NOW() ELSE NULL END,
+      CASE WHEN $2 IS NOT NULL AND $2 <> '' THEN NOW() ELSE NULL END
+    )
     ON CONFLICT (worker_enrollment_id) DO UPDATE SET
       fcm_token = COALESCE(EXCLUDED.fcm_token, worker_presence.fcm_token),
       platform = EXCLUDED.platform,
       online = EXCLUDED.online,
-      latitude = EXCLUDED.latitude,
-      longitude = EXCLUDED.longitude,
-      last_seen_at = NOW(), updated_at = NOW()
-    RETURNING worker_enrollment_id AS "workerId", online, last_seen_at AS "lastSeenAt"
+      latitude = COALESCE(EXCLUDED.latitude, worker_presence.latitude),
+      longitude = COALESCE(EXCLUDED.longitude, worker_presence.longitude),
+      last_seen_at = NOW(),
+      updated_at = NOW(),
+      online_since = CASE
+        WHEN EXCLUDED.online AND NOT worker_presence.online THEN NOW()
+        WHEN EXCLUDED.online THEN COALESCE(worker_presence.online_since, NOW())
+        ELSE NULL
+      END,
+      last_offline_at = CASE
+        WHEN NOT EXCLUDED.online AND worker_presence.online THEN NOW()
+        ELSE worker_presence.last_offline_at
+      END,
+      location_updated_at = CASE
+        WHEN EXCLUDED.latitude IS NOT NULL AND EXCLUDED.longitude IS NOT NULL
+          AND (
+            worker_presence.latitude IS DISTINCT FROM EXCLUDED.latitude OR
+            worker_presence.longitude IS DISTINCT FROM EXCLUDED.longitude
+          )
+        THEN NOW()
+        ELSE worker_presence.location_updated_at
+      END,
+      token_updated_at = CASE
+        WHEN EXCLUDED.fcm_token IS NOT NULL
+          AND worker_presence.fcm_token IS DISTINCT FROM EXCLUDED.fcm_token
+        THEN NOW()
+        ELSE worker_presence.token_updated_at
+      END
+    RETURNING worker_enrollment_id AS "workerId", online,
+      online_since AS "onlineSince", last_seen_at AS "lastSeenAt"
   `, [worker.rows[0].id, value.fcmToken, value.platform, value.online,
     value.latitude, value.longitude]);
   return result.rows[0];

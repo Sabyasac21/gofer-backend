@@ -25,6 +25,11 @@ const {
   getWorkerJobStatus,
   getPendingWorkerJob,
 } = require('./services/jobDispatch');
+const {
+  PRESENCE_FRESH_HOURS,
+  getWorkerAvailability,
+  summarizeAvailability,
+} = require('./services/workerAvailability');
 
 const app = express();
 
@@ -679,6 +684,73 @@ app.get('/api/admin/workers', async (req, res, next) => {
     res.json({
       success: true,
       workers: result.rows,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/admin/worker-availability', async (req, res, next) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    const { error, value } = Joi.object({
+      region: Joi.string().trim().max(120).allow('', null),
+      serviceType: Joi.string().valid('helper', 'professional').allow('', null),
+      category: Joi.string().trim().max(120).allow('', null),
+      latitude: Joi.number().min(-90).max(90),
+      longitude: Joi.number().min(-180).max(180),
+    }).and('latitude', 'longitude').validate(req.query, {
+      stripUnknown: true,
+      convert: true,
+    });
+    if (error) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    const workers = await getWorkerAvailability(pool, {
+      region: value.region || null,
+      serviceType: value.serviceType || null,
+      category: value.category || null,
+      latitude: value.latitude ?? null,
+      longitude: value.longitude ?? null,
+    });
+    res.json({
+      success: true,
+      generatedAt: new Date().toISOString(),
+      presenceFreshHours: PRESENCE_FRESH_HOURS,
+      ...summarizeAvailability(workers),
+      workers,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/admin/matching-preview', async (req, res, next) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    const { error, value } = Joi.object({
+      region: Joi.string().trim().max(120).allow('', null),
+      serviceType: Joi.string().valid('helper', 'professional').required(),
+      category: Joi.string().trim().max(120).allow('', null),
+      latitude: Joi.number().min(-90).max(90).required(),
+      longitude: Joi.number().min(-180).max(180).required(),
+    }).validate(req.body, { stripUnknown: true });
+    if (error) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    const workers = await getWorkerAvailability(pool, value);
+    const eligible = workers.filter((worker) => worker.taskEligible);
+    res.json({
+      success: true,
+      generatedAt: new Date().toISOString(),
+      criteria: value,
+      counts: {
+        evaluated: workers.length,
+        eligible: eligible.length,
+        excluded: workers.length - eligible.length,
+      },
+      eligible,
+      excluded: workers.filter((worker) => !worker.taskEligible),
     });
   } catch (error) {
     next(error);
