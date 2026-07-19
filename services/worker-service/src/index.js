@@ -224,7 +224,9 @@ app.patch('/api/jobs/customer-task/:customerTaskId/status', async (req, res, nex
   try {
     const params = Joi.object({ customerTaskId: Joi.string().uuid().required() })
       .validate(req.params, { stripUnknown: true });
-    const body = Joi.object({ status: Joi.string().valid('completed', 'cancelled').required() })
+    const body = Joi.object({
+      status: Joi.string().valid('started', 'completed', 'cancelled').required(),
+    })
       .validate(req.body, { stripUnknown: true });
     if (params.error || body.error) {
       return res.status(400).json({ success: false, message: (params.error || body.error).message });
@@ -256,7 +258,7 @@ app.patch('/api/jobs/:id/status', async (req, res, next) => {
       id: Joi.string().uuid().required(),
       phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
       status: Joi.string()
-        .valid('arrived', 'started', 'completed', 'cancelled')
+        .valid('arrived', 'started', 'completion_requested', 'completed', 'cancelled')
         .required(),
     }).validate({ ...req.params, ...req.body }, { stripUnknown: true });
     if (error) return res.status(400).json({ success: false, message: error.message });

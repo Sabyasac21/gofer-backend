@@ -38,7 +38,7 @@ async function getPendingWorkerJob(pool, phone) {
       AND (
         (d.status = 'offered' AND o.status = 'offered' AND d.expires_at > NOW())
         OR (
-          d.status IN ('accepted', 'arrived', 'started')
+          d.status IN ('accepted', 'arrived', 'started', 'completion_requested')
           AND d.accepted_worker_id = we.id
         )
       )

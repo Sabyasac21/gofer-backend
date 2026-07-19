@@ -1,7 +1,9 @@
 const WORKER_JOB_TRANSITIONS = Object.freeze({
   accepted: ['arrived', 'cancelled'],
   arrived: ['started', 'cancelled'],
-  started: ['completed'],
+  // `completed` remains accepted for workers on older app builds. Current
+  // builds request customer confirmation before the dispatch is finalized.
+  started: ['completion_requested', 'completed'],
 });
 
 function canWorkerTransition(currentStatus, nextStatus) {

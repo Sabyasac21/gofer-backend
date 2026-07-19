@@ -11,6 +11,7 @@ test('allows only sequential worker progress', () => {
   for (const [current, next] of [
     ['accepted', 'arrived'],
     ['arrived', 'started'],
+    ['started', 'completion_requested'],
     ['started', 'completed'],
   ]) {
     assert.equal(canWorkerTransition(current, next), true);
@@ -42,6 +43,12 @@ test('terminal jobs cannot be revived', () => {
       assert.equal(canWorkerTransition(terminal, next), false);
     }
   }
+});
+
+test('customer confirmation state cannot be advanced by the worker', () => {
+  assert.equal(canWorkerTransition('completion_requested', 'completed'), false);
+  assert.equal(canWorkerTransition('completion_requested', 'started'), false);
+  assert.equal(canWorkerTransition('completion_requested', 'cancelled'), false);
 });
 
 test('summarizes Firebase failures without exposing registration tokens', () => {
@@ -118,6 +125,7 @@ test('pending job recovery returns the active offer for the worker phone', async
   assert.equal(result.id, 'job-1');
   assert.match(calls[2].sql, /d\.expires_at > NOW\(\)/);
   assert.match(calls[2].sql, /d\.accepted_worker_id = we\.id/);
+  assert.match(calls[2].sql, /completion_requested/);
   assert.match(
     calls[2].sql,
     /CASE WHEN d\.status = 'offered' THEN d\.expires_at ELSE NULL END/,

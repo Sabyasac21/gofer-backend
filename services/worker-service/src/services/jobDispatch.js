@@ -92,7 +92,7 @@ async function updatePresence(pool, value) {
       SELECT id, status
       FROM worker_job_dispatches
       WHERE accepted_worker_id = $1
-        AND status IN ('accepted', 'arrived', 'started')
+        AND status IN ('accepted', 'arrived', 'started', 'completion_requested')
       ORDER BY created_at DESC
       LIMIT 1
     `, [worker.rows[0].id]);
@@ -144,7 +144,7 @@ async function getMatchDiagnostics(client, value) {
         NOT EXISTS (
           SELECT 1 FROM worker_job_dispatches active_job
           WHERE active_job.accepted_worker_id = we.id
-            AND active_job.status IN ('accepted', 'arrived', 'started')
+            AND active_job.status IN ('accepted', 'arrived', 'started', 'completion_requested')
         ) AS is_available,
         CASE
           WHEN wp.latitude IS NULL OR wp.longitude IS NULL THEN NULL
@@ -242,7 +242,7 @@ async function dispatchJob(pool, value) {
         AND NOT EXISTS (
           SELECT 1 FROM worker_job_dispatches active_job
           WHERE active_job.accepted_worker_id = we.id
-            AND active_job.status IN ('accepted', 'arrived', 'started')
+            AND active_job.status IN ('accepted', 'arrived', 'started', 'completion_requested')
         )
         AND (
           ($3 = 'helper' AND 'helper' = ANY(we.enrollment_types)) OR
@@ -414,13 +414,16 @@ async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const allowedPrevious = status === 'started'
+      ? ['completion_requested', 'started']
+      : ['offered', 'accepted', 'arrived', 'started', 'completion_requested', status];
     const result = await client.query(`
       UPDATE worker_job_dispatches
       SET status = $2
       WHERE customer_task_id = $1
-        AND status IN ('offered', 'accepted', 'arrived', 'started')
+        AND status = ANY($3::varchar[])
       RETURNING id, customer_task_id AS "customerTaskId", status
-    `, [customerTaskId, status]);
+    `, [customerTaskId, status, allowedPrevious]);
     if (result.rowCount) {
       await client.query(`
         UPDATE worker_job_offers
