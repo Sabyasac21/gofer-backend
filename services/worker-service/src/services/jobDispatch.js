@@ -10,6 +10,8 @@ const {
 let messaging = null;
 let messagingLogger = console;
 let messagingProjectId = null;
+const JOB_OFFER_TTL_MS = 120000;
+const MAX_REPLACEMENT_ATTEMPTS = 2;
 
 function initializeMessaging(logger) {
   messagingLogger = logger || console;
@@ -70,6 +72,10 @@ async function ensureDispatchSchema(pool) {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '2 minutes'
     );
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS replacement_attempts INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS excluded_worker_ids UUID[] NOT NULL DEFAULT '{}';
     CREATE TABLE IF NOT EXISTS worker_job_offers (
       job_id UUID NOT NULL REFERENCES worker_job_dispatches(id) ON DELETE CASCADE,
       worker_enrollment_id UUID NOT NULL REFERENCES worker_enrollments(id) ON DELETE CASCADE,
@@ -370,11 +376,12 @@ async function getDispatchStatus(pool, customerTaskId) {
   const result = await pool.query(`
     SELECT
       d.id, d.customer_task_id, d.status, d.category, d.budget,
-      d.created_at, d.expires_at,
+      d.created_at, d.expires_at, d.replacement_attempts,
       we.id AS worker_id, we.full_name,
       we.enrollment_types, we.professional_categories,
       wp.latitude, wp.longitude,
-      (SELECT COUNT(*)::int FROM worker_job_offers o WHERE o.job_id = d.id) AS offer_count
+      (SELECT COUNT(*)::int FROM worker_job_offers o
+        WHERE o.job_id = d.id AND o.status IN ('offered', 'accepted')) AS offer_count
     FROM worker_job_dispatches d
     LEFT JOIN worker_enrollments we ON we.id = d.accepted_worker_id
     LEFT JOIN worker_presence wp ON wp.worker_enrollment_id = we.id
@@ -391,6 +398,7 @@ async function getDispatchStatus(pool, customerTaskId) {
     offerCount: row.offer_count,
     createdAt: row.created_at,
     expiresAt: row.expires_at,
+    replacementAttempts: row.replacement_attempts,
     worker: row.worker_id ? {
       id: row.worker_id,
       name: row.full_name,
@@ -442,7 +450,264 @@ async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
   }
 }
 
+async function sendReplacementOffers(pool, job, candidates) {
+  const recipients = candidates.filter((candidate) => Boolean(candidate.fcm_token));
+  const push = {
+    configured: Boolean(messaging),
+    attempted: recipients.length,
+    succeeded: 0,
+  };
+  if (!messaging || !recipients.length) return push;
+
+  try {
+    const expiresAt = new Date(job.expires_at).toISOString();
+    const response = await messaging.sendEach(recipients.map((recipient) => ({
+      token: recipient.fcm_token,
+      notification: {
+        title: 'New Gofer job nearby',
+        body: `${job.title} · Rs ${job.budget}`,
+      },
+      data: {
+        type: 'job_offer',
+        jobId: job.id,
+        workType: job.category,
+        customerArea: job.address_text,
+        distanceKm: Number(recipient.distance_km).toFixed(1),
+        durationLabel: 'Replacement request',
+        notes: job.notes || '',
+        budget: String(job.budget),
+        status: 'offered',
+        expiresAt,
+      },
+      android: {
+        priority: 'high',
+        ttl: JOB_OFFER_TTL_MS,
+        notification: {
+          channelId: 'gofer_jobs_v2',
+          sound: 'default',
+          priority: 'max',
+          visibility: 'public',
+        },
+      },
+    })));
+    push.succeeded = response.successCount;
+    const summary = summarizeMessagingResponses(response, recipients);
+    if (summary.failures.length) {
+      push.failureCodes = summary.failureCodes;
+      messagingLogger.warn('Firebase replacement push delivery failed', {
+        jobId: job.id,
+        attempted: recipients.length,
+        succeeded: response.successCount,
+        failures: summary.failures,
+      });
+      const invalidWorkerIds = summary.failures
+        .filter((failure) => failure.invalidToken && failure.workerId)
+        .map((failure) => failure.workerId);
+      if (invalidWorkerIds.length) {
+        await pool.query(`
+          UPDATE worker_presence
+          SET fcm_token=NULL, online=FALSE, updated_at=NOW()
+          WHERE worker_enrollment_id=ANY($1::uuid[])
+        `, [invalidWorkerIds]);
+      }
+    }
+  } catch (error) {
+    const code = messagingErrorCode(error);
+    push.failureCodes = { [code]: recipients.length };
+    messagingLogger.error('Firebase replacement push request failed', {
+      jobId: job.id,
+      attempted: recipients.length,
+      code,
+    });
+  }
+  return push;
+}
+
+async function cancelAndRematchJob(pool, jobId, phone) {
+  const client = await pool.connect();
+  let rematch;
+  try {
+    await client.query('BEGIN');
+    const worker = await client.query(
+      'SELECT id FROM worker_enrollments WHERE phone=$1 LIMIT 1',
+      [phone],
+    );
+    if (!worker.rowCount) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    const workerId = worker.rows[0].id;
+    const locked = await client.query(`
+      SELECT *
+      FROM worker_job_dispatches
+      WHERE id=$1 AND accepted_worker_id=$2
+        AND status IN ('accepted', 'arrived')
+      FOR UPDATE
+    `, [jobId, workerId]);
+    if (!locked.rowCount) {
+      const priorCancellation = await client.query(`
+        SELECT d.id, d.customer_task_id, d.status, d.replacement_attempts,
+          (SELECT COUNT(*)::int FROM worker_job_offers active_offer
+            WHERE active_offer.job_id=d.id
+              AND active_offer.status IN ('offered','accepted')) AS matched_workers
+        FROM worker_job_dispatches d
+        JOIN worker_job_offers worker_offer
+          ON worker_offer.job_id=d.id AND worker_offer.worker_enrollment_id=$2
+        WHERE d.id=$1 AND d.accepted_worker_id IS NULL
+          AND worker_offer.status='cancelled'
+          AND d.status IN ('offered','expired')
+        FOR UPDATE OF d
+      `, [jobId, workerId]);
+      if (priorCancellation.rowCount) {
+        await client.query('COMMIT');
+        const prior = priorCancellation.rows[0];
+        return {
+          id: prior.id,
+          customerTaskId: prior.customer_task_id,
+          status: prior.status,
+          rematching: prior.status === 'offered',
+          replacementAttempts: prior.replacement_attempts,
+          matchedWorkers: prior.matched_workers,
+          push: {
+            configured: Boolean(messaging),
+            attempted: 0,
+            succeeded: 0,
+          },
+          existing: true,
+        };
+      }
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    const current = locked.rows[0];
+    const replacementAttempts = Number(current.replacement_attempts || 0) + 1;
+    const canRematch = replacementAttempts <= MAX_REPLACEMENT_ATTEMPTS;
+    const excludedWorkerIds = [
+      ...(current.excluded_worker_ids || []),
+      workerId,
+    ];
+    const updated = await client.query(`
+      UPDATE worker_job_dispatches
+      SET status=$3,
+          accepted_worker_id=NULL,
+          replacement_attempts=$4,
+          excluded_worker_ids=$5::uuid[],
+          expires_at=CASE
+            WHEN $6 THEN NOW() + INTERVAL '2 minutes'
+            ELSE NOW()
+          END
+      WHERE id=$1 AND accepted_worker_id=$2
+      RETURNING *
+    `, [
+      jobId,
+      workerId,
+      canRematch ? 'offered' : 'expired',
+      replacementAttempts,
+      excludedWorkerIds,
+      canRematch,
+    ]);
+    await client.query(`
+      UPDATE worker_job_offers
+      SET status='cancelled', responded_at=NOW()
+      WHERE job_id=$1 AND worker_enrollment_id=$2
+    `, [jobId, workerId]);
+
+    let candidates = { rows: [], rowCount: 0 };
+    if (canRematch) {
+      candidates = await client.query(`
+        SELECT we.id, wp.fcm_token,
+          6371 * 2 * ASIN(SQRT(
+            POWER(SIN(RADIANS(wp.latitude - $1) / 2), 2) +
+            COS(RADIANS($1)) * COS(RADIANS(wp.latitude)) *
+            POWER(SIN(RADIANS(wp.longitude - $2) / 2), 2)
+          )) AS distance_km
+        FROM worker_enrollments we
+        JOIN worker_presence wp ON wp.worker_enrollment_id=we.id
+        WHERE we.worker_status='verified'
+          AND wp.online=TRUE
+          AND wp.fcm_token IS NOT NULL AND wp.fcm_token<>''
+          AND wp.last_seen_at > NOW() - INTERVAL '12 hours'
+          AND wp.latitude IS NOT NULL AND wp.longitude IS NOT NULL
+          AND NOT (we.id=ANY($5::uuid[]))
+          AND NOT EXISTS (
+            SELECT 1 FROM worker_job_dispatches active_job
+            WHERE active_job.accepted_worker_id=we.id
+              AND active_job.status IN ('accepted','arrived','started','completion_requested')
+          )
+          AND (
+            ($3='helper' AND 'helper'=ANY(we.enrollment_types)) OR
+            ($3='professional' AND 'professional'=ANY(we.enrollment_types)
+              AND EXISTS (
+                SELECT 1 FROM unnest(we.professional_categories) category
+                WHERE LOWER(category)=LOWER($4)
+              ))
+          )
+          AND 6371 * 2 * ASIN(SQRT(
+            POWER(SIN(RADIANS(wp.latitude - $1) / 2), 2) +
+            COS(RADIANS($1)) * COS(RADIANS(wp.latitude)) *
+            POWER(SIN(RADIANS(wp.longitude - $2) / 2), 2)
+          )) <= we.travel_radius_km
+          AND NOT EXISTS (
+            SELECT 1 FROM worker_job_offers prior
+            WHERE prior.job_id=$6 AND prior.worker_enrollment_id=we.id
+              AND prior.status='rejected'
+          )
+        ORDER BY distance_km ASC
+        LIMIT 50
+      `, [
+        current.latitude,
+        current.longitude,
+        current.service_type,
+        current.category,
+        excludedWorkerIds,
+        jobId,
+      ]);
+      for (const candidate of candidates.rows) {
+        await client.query(`
+          INSERT INTO worker_job_offers(job_id, worker_enrollment_id)
+          VALUES ($1,$2)
+          ON CONFLICT (job_id, worker_enrollment_id) DO UPDATE
+          SET status='offered', responded_at=NULL, created_at=NOW()
+          WHERE worker_job_offers.status NOT IN ('rejected','cancelled')
+        `, [jobId, candidate.id]);
+      }
+    }
+
+    await client.query('COMMIT');
+    rematch = {
+      job: updated.rows[0],
+      candidates: candidates.rows,
+      matchedWorkers: candidates.rowCount,
+      canRematch,
+      replacementAttempts,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  const push = rematch.canRematch
+    ? await sendReplacementOffers(pool, rematch.job, rematch.candidates)
+    : { configured: Boolean(messaging), attempted: 0, succeeded: 0 };
+  return {
+    id: rematch.job.id,
+    customerTaskId: rematch.job.customer_task_id,
+    status: rematch.job.status,
+    rematching: rematch.canRematch,
+    replacementAttempts: rematch.replacementAttempts,
+    matchedWorkers: rematch.matchedWorkers,
+    push,
+  };
+}
+
 async function updateJobStatusByWorker(pool, jobId, phone, nextStatus) {
+  if (nextStatus === 'cancelled') {
+    return cancelAndRematchJob(pool, jobId, phone);
+  }
   const worker = await pool.query(
     'SELECT id FROM worker_enrollments WHERE phone=$1 LIMIT 1',
     [phone]
@@ -485,4 +750,6 @@ module.exports = {
   updateJobStatusByWorker,
   getWorkerJobStatus,
   getPendingWorkerJob,
+  cancelAndRematchJob,
+  MAX_REPLACEMENT_ATTEMPTS,
 };

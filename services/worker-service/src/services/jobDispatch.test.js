@@ -6,6 +6,10 @@ const {
   isInvalidRegistrationToken,
 } = require('./firebaseDiagnostics');
 const { getPendingWorkerJob } = require('./pendingJob');
+const {
+  cancelAndRematchJob,
+  MAX_REPLACEMENT_ATTEMPTS,
+} = require('./jobDispatch');
 
 test('allows only sequential worker progress', () => {
   for (const [current, next] of [
@@ -129,5 +133,157 @@ test('pending job recovery returns the active offer for the worker phone', async
   assert.match(
     calls[2].sql,
     /CASE WHEN d\.status = 'offered' THEN d\.expires_at ELSE NULL END/,
+  );
+});
+
+function cancellationPool({
+  replacementAttempts = 0,
+  candidates = [],
+  alreadyCancelled = false,
+} = {}) {
+  const calls = [];
+  const client = {
+    async query(sql, values) {
+      calls.push({ sql, values });
+      if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
+        return { rowCount: 0, rows: [] };
+      }
+      if (sql.includes('SELECT id FROM worker_enrollments')) {
+        return { rowCount: 1, rows: [{ id: '11111111-1111-1111-1111-111111111111' }] };
+      }
+      if (sql.includes('SELECT *') && sql.includes('FOR UPDATE')) {
+        if (alreadyCancelled) return { rowCount: 0, rows: [] };
+        return {
+          rowCount: 1,
+          rows: [{
+            id: '22222222-2222-2222-2222-222222222222',
+            customer_task_id: '33333333-3333-3333-3333-333333333333',
+            service_type: 'helper',
+            category: 'Cleaning',
+            title: 'Cleaning',
+            notes: '',
+            address_text: 'Noida',
+            latitude: 28.6,
+            longitude: 77.3,
+            budget: 500,
+            replacement_attempts: replacementAttempts,
+            excluded_worker_ids: [],
+          }],
+        };
+      }
+      if (sql.includes('worker_offer.status') && alreadyCancelled) {
+        return {
+          rowCount: 1,
+          rows: [{
+            id: '22222222-2222-2222-2222-222222222222',
+            customer_task_id: '33333333-3333-3333-3333-333333333333',
+            status: 'offered',
+            replacement_attempts: 1,
+            matched_workers: 2,
+          }],
+        };
+      }
+      if (sql.includes('UPDATE worker_job_dispatches') && sql.includes('replacement_attempts')) {
+        const canRematch = values[5];
+        return {
+          rowCount: 1,
+          rows: [{
+            id: values[0],
+            customer_task_id: '33333333-3333-3333-3333-333333333333',
+            status: canRematch ? 'offered' : 'expired',
+            title: 'Cleaning',
+            category: 'Cleaning',
+            notes: '',
+            address_text: 'Noida',
+            budget: 500,
+            expires_at: new Date(Date.now() + 120000),
+          }],
+        };
+      }
+      if (sql.includes('SELECT we.id, wp.fcm_token')) {
+        return { rowCount: candidates.length, rows: candidates };
+      }
+      return { rowCount: 1, rows: [] };
+    },
+    release() {},
+  };
+  return {
+    calls,
+    pool: {
+      async connect() {
+        return client;
+      },
+      async query() {
+        return { rowCount: 0, rows: [] };
+      },
+    },
+  };
+}
+
+test('worker cancellation atomically starts a two-minute replacement search', async () => {
+  const replacement = {
+    id: '44444444-4444-4444-4444-444444444444',
+    fcm_token: 'replacement-token',
+    distance_km: 1.5,
+  };
+  const { pool, calls } = cancellationPool({ candidates: [replacement] });
+
+  const result = await cancelAndRematchJob(
+    pool,
+    '22222222-2222-2222-2222-222222222222',
+    '9876543210',
+  );
+
+  assert.equal(result.status, 'offered');
+  assert.equal(result.rematching, true);
+  assert.equal(result.replacementAttempts, 1);
+  assert.equal(result.matchedWorkers, 1);
+  const update = calls.find(({ sql }) =>
+    sql.includes('UPDATE worker_job_dispatches') &&
+    sql.includes('replacement_attempts'));
+  assert.equal(update.values[5], true);
+  assert.match(update.sql, /NOW\(\) \+ INTERVAL '2 minutes'/);
+  assert.ok(calls.some(({ sql }) => sql.includes("status='cancelled'")));
+  assert.ok(calls.some(({ sql }) => sql.includes('ON CONFLICT')));
+  assert.equal(calls.at(-1).sql, 'COMMIT');
+});
+
+test('replacement search stops after the configured automatic limit', async () => {
+  const { pool, calls } = cancellationPool({
+    replacementAttempts: MAX_REPLACEMENT_ATTEMPTS,
+  });
+
+  const result = await cancelAndRematchJob(
+    pool,
+    '22222222-2222-2222-2222-222222222222',
+    '9876543210',
+  );
+
+  assert.equal(result.status, 'expired');
+  assert.equal(result.rematching, false);
+  assert.equal(result.replacementAttempts, MAX_REPLACEMENT_ATTEMPTS + 1);
+  assert.equal(
+    calls.some(({ sql }) => sql.includes('SELECT we.id, wp.fcm_token')),
+    false,
+  );
+});
+
+test('duplicate worker cancellation is idempotent and does not send twice', async () => {
+  const { pool, calls } = cancellationPool({ alreadyCancelled: true });
+
+  const result = await cancelAndRematchJob(
+    pool,
+    '22222222-2222-2222-2222-222222222222',
+    '9876543210',
+  );
+
+  assert.equal(result.status, 'offered');
+  assert.equal(result.rematching, true);
+  assert.equal(result.existing, true);
+  assert.equal(result.push.attempted, 0);
+  assert.equal(calls.at(-1).sql, 'COMMIT');
+  assert.equal(
+    calls.some(({ sql }) => sql.includes('replacement_attempts=$4')),
+    false,
   );
 });
