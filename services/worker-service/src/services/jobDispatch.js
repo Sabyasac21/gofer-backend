@@ -99,6 +99,16 @@ async function ensureDispatchSchema(pool) {
       ADD COLUMN IF NOT EXISTS replacement_attempts INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE worker_job_dispatches
       ADD COLUMN IF NOT EXISTS excluded_worker_ids UUID[] NOT NULL DEFAULT '{}';
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+    UPDATE worker_job_dispatches
+      SET completed_at = COALESCE(completed_at, updated_at, created_at)
+      WHERE status = 'completed' AND completed_at IS NULL;
+    CREATE INDEX IF NOT EXISTS worker_job_dispatches_worker_history_idx
+      ON worker_job_dispatches(accepted_worker_id, completed_at DESC)
+      WHERE status = 'completed';
     CREATE TABLE IF NOT EXISTS worker_job_offers (
       job_id UUID NOT NULL REFERENCES worker_job_dispatches(id) ON DELETE CASCADE,
       worker_enrollment_id UUID NOT NULL REFERENCES worker_enrollments(id) ON DELETE CASCADE,
@@ -494,7 +504,12 @@ async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
       : ['offered', 'accepted', 'arrived', 'started', 'completion_requested', status];
     const result = await client.query(`
       UPDATE worker_job_dispatches
-      SET status = $2
+      SET status = $2,
+          updated_at = NOW(),
+          completed_at = CASE
+            WHEN $2 = 'completed' THEN COALESCE(completed_at, NOW())
+            ELSE completed_at
+          END
       WHERE customer_task_id = $1
         AND status = ANY($3::varchar[])
       RETURNING id, customer_task_id AS "customerTaskId", status
@@ -783,12 +798,61 @@ async function updateJobStatusByWorker(pool, jobId, phone, nextStatus) {
   const allowedPrevious = previousStatusesFor(nextStatus);
   const result = await pool.query(`
     UPDATE worker_job_dispatches
-    SET status = $3
+    SET status = $3,
+        updated_at = NOW(),
+        completed_at = CASE
+          WHEN $3 = 'completed' THEN COALESCE(completed_at, NOW())
+          ELSE completed_at
+        END
     WHERE id = $1 AND accepted_worker_id = $2
       AND status = ANY($4::varchar[])
     RETURNING id, customer_task_id AS "customerTaskId", status
   `, [jobId, worker.rows[0].id, nextStatus, allowedPrevious]);
   return result.rows[0] || null;
+}
+
+async function getWorkerDashboard(pool, phone, limit = 50) {
+  const worker = await pool.query(
+    `SELECT id FROM worker_enrollments
+     WHERE phone = $1 AND worker_status = 'verified'
+     LIMIT 1`,
+    [phone],
+  );
+  if (!worker.rowCount) return null;
+
+  const workerId = worker.rows[0].id;
+  const [summary, history] = await Promise.all([
+    pool.query(`
+      SELECT
+        COALESCE(SUM(budget) FILTER (
+          WHERE completed_at >= date_trunc('day', NOW() AT TIME ZONE 'Asia/Kolkata')
+            AT TIME ZONE 'Asia/Kolkata'
+        ), 0)::int AS "earningsToday",
+        COALESCE(SUM(budget), 0)::int AS "totalEarnings",
+        COUNT(*)::int AS "completedJobs"
+      FROM worker_job_dispatches
+      WHERE accepted_worker_id = $1 AND status = 'completed'
+    `, [workerId]),
+    pool.query(`
+      SELECT id,
+        customer_task_id AS "customerTaskId",
+        category AS "workType",
+        address_text AS "customerArea",
+        budget,
+        status,
+        created_at AS "createdAt",
+        completed_at AS "completedAt"
+      FROM worker_job_dispatches
+      WHERE accepted_worker_id = $1 AND status = 'completed'
+      ORDER BY completed_at DESC NULLS LAST, created_at DESC
+      LIMIT $2
+    `, [workerId, limit]),
+  ]);
+
+  return {
+    ...summary.rows[0],
+    history: history.rows,
+  };
 }
 
 async function getWorkerJobStatus(pool, jobId, phone) {
@@ -816,6 +880,7 @@ module.exports = {
   updateJobStatusByCustomerTask,
   updateJobStatusByWorker,
   getWorkerJobStatus,
+  getWorkerDashboard,
   getPendingWorkerJob,
   cancelAndRematchJob,
   MAX_REPLACEMENT_ATTEMPTS,

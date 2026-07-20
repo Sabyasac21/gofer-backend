@@ -10,7 +10,51 @@ const {
   cancelAndRematchJob,
   MAX_REPLACEMENT_ATTEMPTS,
   updatePresence,
+  getWorkerDashboard,
 } = require('./jobDispatch');
+
+test('worker dashboard restores authoritative earnings and completed history',
+    async () => {
+  const calls = [];
+  const pool = {
+    async query(sql, values) {
+      calls.push({ sql, values });
+      if (calls.length === 1) {
+        return { rowCount: 1, rows: [{ id: 'worker-1' }] };
+      }
+      if (calls.length === 2) {
+        return {
+          rowCount: 1,
+          rows: [{
+            earningsToday: 179,
+            totalEarnings: 512,
+            completedJobs: 3,
+          }],
+        };
+      }
+      return {
+        rowCount: 1,
+        rows: [{
+          id: 'job-1',
+          workType: 'Cleaning',
+          customerArea: 'Danapur',
+          budget: 179,
+          completedAt: '2026-07-20T06:00:00.000Z',
+        }],
+      };
+    },
+  };
+
+  const dashboard = await getWorkerDashboard(pool, '9876543210', 20);
+
+  assert.equal(dashboard.earningsToday, 179);
+  assert.equal(dashboard.totalEarnings, 512);
+  assert.equal(dashboard.completedJobs, 3);
+  assert.equal(dashboard.history.length, 1);
+  assert.match(calls[1].sql, /Asia\/Kolkata/);
+  assert.match(calls[2].sql, /status = 'completed'/);
+  assert.deepEqual(calls[2].values, ['worker-1', 20]);
+});
 
 test('presence SQL explicitly types coordinates used by CASE expressions',
     async () => {

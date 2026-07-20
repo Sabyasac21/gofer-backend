@@ -23,6 +23,7 @@ const {
   updateJobStatusByCustomerTask,
   updateJobStatusByWorker,
   getWorkerJobStatus,
+  getWorkerDashboard,
   getPendingWorkerJob,
 } = require('./services/jobDispatch');
 const {
@@ -206,6 +207,28 @@ app.get('/api/jobs/pending', async (req, res, next) => {
     }
     const job = await getPendingWorkerJob(pool, value.phone);
     res.json({ success: true, job });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/workers/dashboard', async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
+      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+      limit: Joi.number().integer().min(1).max(100).default(50),
+    }).validate(req.query, { stripUnknown: true });
+    if (error) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    const dashboard = await getWorkerDashboard(pool, value.phone, value.limit);
+    if (!dashboard) {
+      return res.status(404).json({
+        success: false,
+        message: 'Verified worker not found',
+      });
+    }
+    res.json({ success: true, dashboard });
   } catch (error) {
     next(error);
   }
