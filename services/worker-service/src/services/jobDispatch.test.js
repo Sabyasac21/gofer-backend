@@ -9,7 +9,54 @@ const { getPendingWorkerJob } = require('./pendingJob');
 const {
   cancelAndRematchJob,
   MAX_REPLACEMENT_ATTEMPTS,
+  updatePresence,
 } = require('./jobDispatch');
+
+test('presence SQL explicitly types coordinates used by CASE expressions',
+    async () => {
+  for (const coordinates of [
+    { latitude: 22.7196, longitude: 75.8577 },
+    { latitude: null, longitude: null },
+  ]) {
+    const calls = [];
+    const pool = {
+      async query(sql, values) {
+        calls.push({ sql, values });
+        if (calls.length === 1) {
+          return {
+            rowCount: 1,
+            rows: [{ id: '11111111-1111-1111-1111-111111111111' }],
+          };
+        }
+        return {
+          rowCount: 1,
+          rows: [{
+            workerId: '11111111-1111-1111-1111-111111111111',
+            online: true,
+          }],
+        };
+      },
+    };
+
+    const result = await updatePresence(pool, {
+      phone: '9876543210',
+      online: true,
+      fcmToken: 'test-token',
+      platform: 'android',
+      ...coordinates,
+    });
+
+    assert.equal(result.online, true);
+    assert.equal(calls.length, 2);
+    assert.match(calls[1].sql, /\$5::double precision/);
+    assert.match(calls[1].sql, /\$6::double precision/);
+    assert.match(calls[1].sql, /\$4::boolean/);
+    assert.deepEqual(calls[1].values.slice(4), [
+      coordinates.latitude,
+      coordinates.longitude,
+    ]);
+  }
+});
 
 test('allows only sequential worker progress', () => {
   for (const [current, next] of [

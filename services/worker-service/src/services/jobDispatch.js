@@ -141,11 +141,21 @@ async function updatePresence(pool, value) {
       last_seen_at, updated_at, online_since, last_offline_at,
       location_updated_at, token_updated_at
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,NOW(),NOW(),
-      CASE WHEN $4 THEN NOW() ELSE NULL END,
-      CASE WHEN NOT $4 THEN NOW() ELSE NULL END,
-      CASE WHEN $5 IS NOT NULL AND $6 IS NOT NULL THEN NOW() ELSE NULL END,
-      CASE WHEN $2 IS NOT NULL AND $2 <> '' THEN NOW() ELSE NULL END
+      $1::uuid,$2::text,$3::varchar,$4::boolean,
+      $5::double precision,$6::double precision,NOW(),NOW(),
+      CASE WHEN $4::boolean THEN NOW() ELSE NULL END,
+      CASE WHEN NOT $4::boolean THEN NOW() ELSE NULL END,
+      CASE
+        WHEN $5::double precision IS NOT NULL
+          AND $6::double precision IS NOT NULL
+        THEN NOW()
+        ELSE NULL
+      END,
+      CASE
+        WHEN $2::text IS NOT NULL AND $2::text <> ''
+        THEN NOW()
+        ELSE NULL
+      END
     )
     ON CONFLICT (worker_enrollment_id) DO UPDATE SET
       fcm_token = COALESCE(EXCLUDED.fcm_token, worker_presence.fcm_token),
