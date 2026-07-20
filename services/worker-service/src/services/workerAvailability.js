@@ -75,6 +75,8 @@ function mapAvailabilityRow(row, { taskSpecific = false } = {}) {
     travelRadiusKm: Number(row.travelRadiusKm || 0),
     workerStatus: row.workerStatus,
     kycStatus: row.kycStatus,
+    submittedAt: row.submittedAt,
+    updatedAt: row.updatedAt,
     latitude: row.latitude,
     longitude: row.longitude,
     onlineSince: row.onlineSince,
@@ -125,6 +127,8 @@ async function getWorkerAvailability(pool, options = {}) {
         we.travel_radius_km AS "travelRadiusKm",
         we.worker_status AS "workerStatus",
         we.kyc_status AS "kycStatus",
+        we.submitted_at AS "submittedAt",
+        we.updated_at AS "updatedAt",
         (wp.worker_enrollment_id IS NOT NULL) AS "presenceRegistered",
         (wp.online = TRUE) AS "onlineEnabled",
         (

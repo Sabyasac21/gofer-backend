@@ -1,5 +1,7 @@
 // shared/utils/errorHandler.js
 
+const logger = require('./logger');
+
 class AppError extends Error {
   constructor(message, statusCode) {
     super(message);
@@ -41,12 +43,29 @@ class ConflictError extends AppError {
 const errorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
+  const requestId = req.requestId || req.get?.('x-request-id') || null;
+
+  logger.error('Request failed', {
+    event: 'request_failed',
+    requestId,
+    operation: err.operation || null,
+    method: req.method,
+    path: req.originalUrl || req.path,
+    statusCode,
+    errorName: err.name || 'Error',
+    errorCode: err.code || null,
+    errorMessage: message,
+    errorDetail: err.detail || null,
+    errorConstraint: err.constraint || null,
+    stack: err.stack || null,
+  });
 
   res.status(statusCode).json({
     success: false,
     error: {
       message,
       statusCode,
+      requestId,
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     }
   });

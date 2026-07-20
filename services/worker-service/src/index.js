@@ -36,6 +36,14 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+app.use((req, res, next) => {
+  const incomingId = req.get('x-request-id');
+  req.requestId = incomingId && /^[a-zA-Z0-9._:-]{8,128}$/.test(incomingId)
+    ? incomingId
+    : uuidv4();
+  res.set('x-request-id', req.requestId);
+  next();
+});
 app.use(morgan('combined'));
 
 // ─────────────────────────────────────────────────────────
@@ -163,7 +171,10 @@ app.post('/api/workers/presence', async (req, res, next) => {
     const presence = await updatePresence(pool, value);
     if (!presence) return res.status(404).json({ success: false, message: 'Verified worker not found' });
     res.json({ success: true, presence });
-  } catch (error) { next(error); }
+  } catch (error) {
+    error.operation = 'worker_presence_update';
+    next(error);
+  }
 });
 
 app.post('/api/jobs/dispatch', async (req, res, next) => {
@@ -855,6 +866,145 @@ app.get('/api/admin/workers/:id', async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+});
+
+const workerApprovalSchema = Joi.object({
+  notes: Joi.string()
+    .trim()
+    .max(1000)
+    .default('Worker documents and profile approved by administrator'),
+});
+
+app.post('/api/admin/workers/:id/approve', async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const adminId = requireAdmin(req, res);
+    if (!adminId) return;
+
+    const { error: idError } = Joi.string().uuid().required().validate(req.params.id);
+    if (idError) {
+      return res.status(400).json({ success: false, message: 'Invalid worker id' });
+    }
+
+    const { error, value } = workerApprovalSchema.validate(req.body || {}, {
+      stripUnknown: true,
+    });
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.details[0].message,
+      });
+    }
+
+    await client.query('BEGIN');
+    const current = await client.query(
+      `
+        SELECT id, full_name AS "fullName", worker_status AS "workerStatus"
+        FROM worker_enrollments
+        WHERE id = $1
+        FOR UPDATE
+      `,
+      [req.params.id]
+    );
+
+    if (current.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Worker not found' });
+    }
+
+    if (current.rows[0].workerStatus === 'verified') {
+      await client.query('COMMIT');
+      return res.json({
+        success: true,
+        alreadyVerified: true,
+        worker: current.rows[0],
+      });
+    }
+
+    const providerReferenceId = `admin-${uuidv4()}`;
+    const verification = await client.query(
+      `
+        INSERT INTO kyc_verifications (
+          worker_enrollment_id,
+          provider,
+          provider_reference_id,
+          status,
+          document_status,
+          face_match_status,
+          liveness_status,
+          background_status,
+          decision_reason,
+          raw_result,
+          processed_by,
+          processed_at,
+          updated_at
+        )
+        VALUES (
+          $1, 'admin_manual', $2, 'verified', 'passed', 'passed', 'passed',
+          'clear', $3, $4::jsonb, $5, NOW(), NOW()
+        )
+        RETURNING id
+      `,
+      [
+        req.params.id,
+        providerReferenceId,
+        value.notes,
+        JSON.stringify({
+          source: 'admin_manual_approval',
+          approvedBy: adminId,
+          checksConfirmed: ['profile', 'documents', 'identity', 'eligibility'],
+        }),
+        adminId,
+      ]
+    );
+
+    const workerUpdate = await client.query(
+      `
+        UPDATE worker_enrollments
+        SET
+          worker_status = 'verified',
+          review_status = 'approved',
+          kyc_provider = 'admin_manual',
+          kyc_status = 'verified',
+          kyc_reference_id = $2,
+          kyc_completed_at = NOW(),
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING
+          id,
+          full_name AS "fullName",
+          worker_status AS "workerStatus",
+          review_status AS "reviewStatus",
+          kyc_status AS "kycStatus",
+          updated_at AS "updatedAt"
+      `,
+      [req.params.id, providerReferenceId]
+    );
+
+    await client.query(
+      `
+        INSERT INTO admin_audit_logs (admin_id, action, worker_enrollment_id, details)
+        VALUES ($1, 'approve_worker', $2, $3::jsonb)
+      `,
+      [
+        adminId,
+        req.params.id,
+        JSON.stringify({
+          notes: value.notes,
+          verificationId: verification.rows[0].id,
+          previousWorkerStatus: current.rows[0].workerStatus,
+        }),
+      ]
+    );
+
+    await client.query('COMMIT');
+    return res.json({ success: true, worker: workerUpdate.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    next(error);
+  } finally {
+    client.release();
   }
 });
 
