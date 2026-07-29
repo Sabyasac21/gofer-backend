@@ -81,6 +81,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     service: 'worker-service',
+    release: process.env.RENDER_GIT_COMMIT || null,
     push: getMessagingStatus(),
     timestamp: new Date().toISOString()
   });
