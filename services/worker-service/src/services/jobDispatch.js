@@ -250,22 +250,22 @@ async function getMatchDiagnostics(client, value) {
         WHERE has_presence AND is_online AND is_fresh
       )::int AS "fresh",
       COUNT(*) FILTER (
-        WHERE has_presence AND is_online AND is_fresh AND has_token
+        WHERE has_presence AND is_online AND has_token
       )::int AS "tokenReady",
       COUNT(*) FILTER (
-        WHERE has_presence AND is_online AND is_fresh AND has_token
+        WHERE has_presence AND is_online AND has_token
           AND has_location
       )::int AS "locationReady",
       COUNT(*) FILTER (
-        WHERE has_presence AND is_online AND is_fresh AND has_token
+        WHERE has_presence AND is_online AND has_token
           AND has_location AND matches_service
       )::int AS "serviceEligible",
       COUNT(*) FILTER (
-        WHERE has_presence AND is_online AND is_fresh AND has_token
+        WHERE has_presence AND is_online AND has_token
           AND has_location AND matches_service AND is_available
       )::int AS "available",
       COUNT(*) FILTER (
-        WHERE has_presence AND is_online AND is_fresh AND has_token
+        WHERE has_presence AND is_online AND has_token
           AND has_location AND matches_service AND is_available
           AND distance_km <= travel_radius_km
       )::int AS "withinTravelRadius"
@@ -317,10 +317,8 @@ async function dispatchJob(pool, value) {
       WHERE we.worker_status = 'verified'
         AND wp.online = TRUE
         AND wp.fcm_token IS NOT NULL AND wp.fcm_token <> ''
-        -- Android may suspend the Flutter process while the worker app is in
-        -- the background. Keep an explicit "online" choice valid for a work
-        -- shift; the app refreshes this lease every minute while foregrounded.
-        AND wp.last_seen_at > NOW() - INTERVAL '12 hours'
+        -- Online is an explicit worker choice, not a process heartbeat.
+        -- Firebase can wake a terminated Android app to deliver this offer.
         AND wp.latitude IS NOT NULL AND wp.longitude IS NOT NULL
         AND NOT EXISTS (
           SELECT 1 FROM worker_job_dispatches active_job
@@ -425,8 +423,19 @@ async function respondToJob(pool, jobId, phone, decision) {
     const worker = await client.query('SELECT id FROM worker_enrollments WHERE phone=$1', [phone]);
     if (!worker.rowCount) return null;
     const offer = await client.query(`
-      UPDATE worker_job_offers SET status=$1, responded_at=NOW()
-      WHERE job_id=$2 AND worker_enrollment_id=$3 AND status='offered' RETURNING *
+      UPDATE worker_job_offers AS offer
+      SET status=$1, responded_at=NOW()
+      WHERE offer.job_id=$2
+        AND offer.worker_enrollment_id=$3
+        AND offer.status='offered'
+        AND EXISTS (
+          SELECT 1
+          FROM worker_job_dispatches dispatch
+          WHERE dispatch.id=offer.job_id
+            AND dispatch.status='offered'
+            AND dispatch.expires_at>NOW()
+        )
+      RETURNING offer.*
     `, [decision, jobId, worker.rows[0].id]);
     if (!offer.rowCount) { await client.query('ROLLBACK'); return null; }
     if (decision === 'accepted') {
@@ -442,6 +451,72 @@ async function respondToJob(pool, jobId, phone, decision) {
     return { accepted: decision === 'accepted', decision };
   } catch (error) { await client.query('ROLLBACK'); throw error; }
   finally { client.release(); }
+}
+
+function buildJobCancellationMessage(token, jobId) {
+  return {
+    token,
+    data: {
+      type: 'job_cancelled',
+      jobId,
+    },
+    android: {
+      priority: 'high',
+      ttl: JOB_OFFER_TTL_MS,
+      collapseKey: `gofer-job-${jobId}`,
+    },
+  };
+}
+
+async function sendJobCancellation(pool, jobId, recipients) {
+  const uniqueRecipients = [...new Map(
+    recipients
+      .filter((recipient) => Boolean(recipient.fcm_token))
+      .map((recipient) => [recipient.fcm_token, recipient]),
+  ).values()];
+  const push = {
+    configured: Boolean(messaging),
+    attempted: uniqueRecipients.length,
+    succeeded: 0,
+  };
+  if (!messaging || !uniqueRecipients.length) return push;
+
+  try {
+    const response = await messaging.sendEach(
+      uniqueRecipients.map((recipient) =>
+        buildJobCancellationMessage(recipient.fcm_token, jobId)),
+    );
+    push.succeeded = response.successCount;
+    const summary = summarizeMessagingResponses(response, uniqueRecipients);
+    if (summary.failures.length) {
+      push.failureCodes = summary.failureCodes;
+      messagingLogger.warn('Firebase job cancellation delivery failed', {
+        jobId,
+        attempted: uniqueRecipients.length,
+        succeeded: response.successCount,
+        failures: summary.failures,
+      });
+      const invalidWorkerIds = summary.failures
+        .filter((failure) => failure.invalidToken && failure.workerId)
+        .map((failure) => failure.workerId);
+      if (invalidWorkerIds.length) {
+        await pool.query(`
+          UPDATE worker_presence
+          SET fcm_token=NULL, online=FALSE, updated_at=NOW()
+          WHERE worker_enrollment_id=ANY($1::uuid[])
+        `, [invalidWorkerIds]);
+      }
+    }
+  } catch (error) {
+    const code = messagingErrorCode(error);
+    push.failureCodes = { [code]: uniqueRecipients.length };
+    messagingLogger.error('Firebase job cancellation request failed', {
+      jobId,
+      attempted: uniqueRecipients.length,
+      code,
+    });
+  }
+  return push;
 }
 
 async function getDispatchStatus(pool, customerTaskId) {
@@ -497,11 +572,50 @@ async function getDispatchStatus(pool, customerTaskId) {
 
 async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
   const client = await pool.connect();
+  let updatedJob = null;
+  let cancellationRecipients = [];
   try {
     await client.query('BEGIN');
     const allowedPrevious = status === 'started'
       ? ['completion_requested', 'started']
       : ['offered', 'accepted', 'arrived', 'started', 'completion_requested', status];
+    const locked = await client.query(`
+      SELECT id, customer_task_id AS "customerTaskId", status
+      FROM worker_job_dispatches
+      WHERE customer_task_id=$1
+      ORDER BY created_at DESC
+      LIMIT 1
+      FOR UPDATE
+    `, [customerTaskId]);
+    if (!locked.rowCount || !allowedPrevious.includes(locked.rows[0].status)) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+    if (status === 'cancelled' && locked.rows[0].status === 'cancelled') {
+      await client.query('COMMIT');
+      return {
+        ...locked.rows[0],
+        existing: true,
+        push: {
+          configured: Boolean(messaging),
+          attempted: 0,
+          succeeded: 0,
+        },
+      };
+    }
+    if (status === 'cancelled') {
+      const recipients = await client.query(`
+        SELECT DISTINCT we.id, wp.fcm_token
+        FROM worker_job_offers offer
+        JOIN worker_enrollments we ON we.id=offer.worker_enrollment_id
+        JOIN worker_presence wp ON wp.worker_enrollment_id=we.id
+        WHERE offer.job_id=$1
+          AND offer.status IN ('offered','accepted')
+          AND wp.fcm_token IS NOT NULL
+          AND wp.fcm_token<>''
+      `, [locked.rows[0].id]);
+      cancellationRecipients = recipients.rows;
+    }
     const result = await client.query(`
       UPDATE worker_job_dispatches
       SET status = $2,
@@ -510,26 +624,39 @@ async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
             WHEN $2 = 'completed' THEN COALESCE(completed_at, NOW())
             ELSE completed_at
           END
-      WHERE customer_task_id = $1
+      WHERE id = $1
         AND status = ANY($3::varchar[])
       RETURNING id, customer_task_id AS "customerTaskId", status
-    `, [customerTaskId, status, allowedPrevious]);
+    `, [locked.rows[0].id, status, allowedPrevious]);
     if (result.rowCount) {
       await client.query(`
         UPDATE worker_job_offers
-        SET status = CASE WHEN status = 'offered' THEN 'expired' ELSE status END,
+        SET status = CASE
+              WHEN $2='cancelled' AND status IN ('offered','accepted')
+                THEN 'cancelled'
+              WHEN status='offered' THEN 'expired'
+              ELSE status
+            END,
             responded_at = COALESCE(responded_at, NOW())
         WHERE job_id = $1
-      `, [result.rows[0].id]);
+      `, [result.rows[0].id, status]);
     }
     await client.query('COMMIT');
-    return result.rows[0] || null;
+    updatedJob = result.rows[0] || null;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
   } finally {
     client.release();
   }
+  if (updatedJob && status === 'cancelled') {
+    updatedJob.push = await sendJobCancellation(
+      pool,
+      updatedJob.id,
+      cancellationRecipients,
+    );
+  }
+  return updatedJob;
 }
 
 async function sendReplacementOffers(pool, job, candidates) {
@@ -710,7 +837,6 @@ async function cancelAndRematchJob(pool, jobId, phone) {
         WHERE we.worker_status='verified'
           AND wp.online=TRUE
           AND wp.fcm_token IS NOT NULL AND wp.fcm_token<>''
-          AND wp.last_seen_at > NOW() - INTERVAL '12 hours'
           AND wp.latitude IS NOT NULL AND wp.longitude IS NOT NULL
           AND NOT (we.id=ANY($5::uuid[]))
           AND NOT EXISTS (
@@ -884,4 +1010,5 @@ module.exports = {
   getPendingWorkerJob,
   cancelAndRematchJob,
   MAX_REPLACEMENT_ATTEMPTS,
+  buildJobCancellationMessage,
 };

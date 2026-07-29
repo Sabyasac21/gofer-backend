@@ -9,7 +9,6 @@ const ACTIVE_JOB_STATUSES = Object.freeze([
 function availabilityStatus(checks, activeJobStatus) {
   if (!checks.verified) return 'not_verified';
   if (!checks.presenceRegistered || !checks.onlineEnabled) return 'offline';
-  if (!checks.presenceFresh) return 'stale';
   if (activeJobStatus) return 'busy';
   if (!checks.notificationReady) return 'notification_unavailable';
   if (!checks.locationReady) return 'location_unavailable';
@@ -25,9 +24,6 @@ function eligibilityReasons(checks, { taskSpecific = false } = {}) {
   if (!checks.presenceRegistered) reasons.push('Worker app has not registered presence');
   if (checks.presenceRegistered && !checks.onlineEnabled) {
     reasons.push('Worker switched offline');
-  }
-  if (checks.onlineEnabled && !checks.presenceFresh) {
-    reasons.push('Online presence is older than the 12-hour work-shift lease');
   }
   if (!checks.notificationReady) reasons.push('Notification token is unavailable');
   if (!checks.locationReady) reasons.push('Current location is unavailable');
@@ -56,7 +52,6 @@ function mapAvailabilityRow(row, { taskSpecific = false } = {}) {
   const readyNow = checks.verified &&
     checks.presenceRegistered &&
     checks.onlineEnabled &&
-    checks.presenceFresh &&
     checks.notificationReady &&
     checks.locationReady &&
     checks.available;
@@ -199,7 +194,7 @@ async function getWorkerAvailability(pool, options = {}) {
       END AS "withinTravelRadius"
     FROM evaluated
     ORDER BY
-      ("onlineEnabled" AND "presenceFresh") DESC,
+      "onlineEnabled" DESC,
       "lastSeenAt" DESC NULLS LAST,
       "fullName"
     LIMIT 500

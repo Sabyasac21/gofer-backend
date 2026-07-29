@@ -22,10 +22,13 @@ function readyChecks(overrides = {}) {
   };
 }
 
-test('availability status identifies ready, busy, stale, and blocked workers', () => {
+test('explicit online choice remains ready when the app heartbeat is stale', () => {
   assert.equal(availabilityStatus(readyChecks(), null), 'ready');
   assert.equal(availabilityStatus(readyChecks({ available: false }), 'accepted'), 'busy');
-  assert.equal(availabilityStatus(readyChecks({ presenceFresh: false }), null), 'stale');
+  assert.equal(
+    availabilityStatus(readyChecks({ presenceFresh: false }), null),
+    'ready',
+  );
   assert.equal(
     availabilityStatus(readyChecks({ notificationReady: false }), null),
     'notification_unavailable',

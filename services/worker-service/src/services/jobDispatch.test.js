@@ -11,6 +11,8 @@ const {
   MAX_REPLACEMENT_ATTEMPTS,
   updatePresence,
   getWorkerDashboard,
+  updateJobStatusByCustomerTask,
+  buildJobCancellationMessage,
 } = require('./jobDispatch');
 
 test('worker dashboard restores authoritative earnings and completed history',
@@ -189,6 +191,133 @@ test('only definitive Firebase registration errors retire a worker token', () =>
   assert.equal(isInvalidRegistrationToken('messaging/registration-token-not-registered'), true);
   assert.equal(isInvalidRegistrationToken('messaging/mismatched-credential'), false);
   assert.equal(isInvalidRegistrationToken('messaging/server-unavailable'), false);
+});
+
+test('customer cancellation uses a high-priority data message', () => {
+  assert.deepEqual(
+    buildJobCancellationMessage('worker-token', 'job-1'),
+    {
+      token: 'worker-token',
+      data: {
+        type: 'job_cancelled',
+        jobId: 'job-1',
+      },
+      android: {
+        priority: 'high',
+        ttl: 120000,
+        collapseKey: 'gofer-job-job-1',
+      },
+    },
+  );
+});
+
+test('customer cancellation atomically closes every active offer', async () => {
+  const calls = [];
+  const client = {
+    async query(sql, values) {
+      calls.push({ sql, values });
+      if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
+        return { rowCount: 0, rows: [] };
+      }
+      if (sql.includes('FOR UPDATE')) {
+        return {
+          rowCount: 1,
+          rows: [{
+            id: 'job-1',
+            customerTaskId: 'task-1',
+            status: 'offered',
+          }],
+        };
+      }
+      if (sql.includes('SELECT DISTINCT we.id')) {
+        return {
+          rowCount: 2,
+          rows: [
+            { id: 'worker-1', fcm_token: 'token-1' },
+            { id: 'worker-2', fcm_token: 'token-2' },
+          ],
+        };
+      }
+      if (sql.includes('UPDATE worker_job_dispatches')) {
+        return {
+          rowCount: 1,
+          rows: [{
+            id: 'job-1',
+            customerTaskId: 'task-1',
+            status: 'cancelled',
+          }],
+        };
+      }
+      return { rowCount: 2, rows: [] };
+    },
+    release() {},
+  };
+  const pool = {
+    async connect() {
+      return client;
+    },
+    async query() {
+      return { rowCount: 0, rows: [] };
+    },
+  };
+
+  const result = await updateJobStatusByCustomerTask(
+    pool,
+    'task-1',
+    'cancelled',
+  );
+
+  assert.equal(result.status, 'cancelled');
+  assert.equal(result.push.attempted, 2);
+  assert.equal(result.push.configured, false);
+  const offerUpdate = calls.find(({ sql }) =>
+    sql.includes('UPDATE worker_job_offers'));
+  assert.match(offerUpdate.sql, /status IN \('offered','accepted'\)/);
+  assert.deepEqual(offerUpdate.values, ['job-1', 'cancelled']);
+  assert.equal(calls.at(-1).sql, 'COMMIT');
+});
+
+test('duplicate customer cancellation is idempotent', async () => {
+  const calls = [];
+  const client = {
+    async query(sql, values) {
+      calls.push({ sql, values });
+      if (sql.includes('FOR UPDATE')) {
+        return {
+          rowCount: 1,
+          rows: [{
+            id: 'job-1',
+            customerTaskId: 'task-1',
+            status: 'cancelled',
+          }],
+        };
+      }
+      return { rowCount: 0, rows: [] };
+    },
+    release() {},
+  };
+  const pool = {
+    async connect() {
+      return client;
+    },
+  };
+
+  const result = await updateJobStatusByCustomerTask(
+    pool,
+    'task-1',
+    'cancelled',
+  );
+
+  assert.equal(result.existing, true);
+  assert.equal(result.push.attempted, 0);
+  assert.equal(
+    calls.some(({ sql }) => sql.includes('SELECT DISTINCT we.id')),
+    false,
+  );
+  assert.equal(
+    calls.some(({ sql }) => sql.includes('UPDATE worker_job_dispatches')),
+    false,
+  );
 });
 
 test('pending job recovery returns the active offer for the worker phone', async () => {
