@@ -618,10 +618,10 @@ async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
     }
     const result = await client.query(`
       UPDATE worker_job_dispatches
-      SET status = $2,
+      SET status = $2::varchar,
           updated_at = NOW(),
           completed_at = CASE
-            WHEN $2 = 'completed' THEN COALESCE(completed_at, NOW())
+            WHEN $2::varchar = 'completed' THEN COALESCE(completed_at, NOW())
             ELSE completed_at
           END
       WHERE id = $1
@@ -632,7 +632,7 @@ async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
       await client.query(`
         UPDATE worker_job_offers
         SET status = CASE
-              WHEN $2='cancelled' AND status IN ('offered','accepted')
+              WHEN $2::varchar='cancelled' AND status IN ('offered','accepted')
                 THEN 'cancelled'
               WHEN status='offered' THEN 'expired'
               ELSE status

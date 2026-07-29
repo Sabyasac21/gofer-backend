@@ -270,9 +270,17 @@ test('customer cancellation atomically closes every active offer', async () => {
   assert.equal(result.status, 'cancelled');
   assert.equal(result.push.attempted, 2);
   assert.equal(result.push.configured, false);
+  const dispatchUpdate = calls.find(({ sql }) =>
+    sql.includes('UPDATE worker_job_dispatches'));
+  assert.match(dispatchUpdate.sql, /SET status = \$2::varchar/);
+  assert.match(
+    dispatchUpdate.sql,
+    /WHEN \$2::varchar = 'completed'/,
+  );
   const offerUpdate = calls.find(({ sql }) =>
     sql.includes('UPDATE worker_job_offers'));
   assert.match(offerUpdate.sql, /status IN \('offered','accepted'\)/);
+  assert.match(offerUpdate.sql, /WHEN \$2::varchar='cancelled'/);
   assert.deepEqual(offerUpdate.values, ['job-1', 'cancelled']);
   assert.equal(calls.at(-1).sql, 'COMMIT');
 });
