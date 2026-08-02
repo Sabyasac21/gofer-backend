@@ -1,4 +1,5 @@
 const admin = require('firebase-admin');
+const { getFirebaseApp } = require('./firebaseAdmin');
 const { v4: uuidv4 } = require('uuid');
 const { previousStatusesFor } = require('./jobLifecycle');
 const { getPendingWorkerJob } = require('./pendingJob');
@@ -23,9 +24,7 @@ function initializeMessaging(logger) {
   try {
     const credential = JSON.parse(raw);
     messagingProjectId = credential.project_id || null;
-    const app = admin.apps.length
-      ? admin.app()
-      : admin.initializeApp({ credential: admin.credential.cert(credential) });
+    const app = getFirebaseApp();
     messaging = app.messaging();
     messagingLogger.info('Firebase Admin messaging initialized', {
       projectId: messagingProjectId,

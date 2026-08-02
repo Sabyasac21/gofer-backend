@@ -12,6 +12,7 @@ const { errorHandler } = require('../../../shared/utils/errorHandler');
 const pool = require('./config/db');
 const { saveWorkerDocument } = require('./services/documentStorage');
 const { buildMockHyperVergeResult } = require('./services/kycProvider');
+const { getFirebaseAuth } = require('./services/firebaseAdmin');
 const {
   initializeMessaging,
   getMessagingStatus,
@@ -33,7 +34,6 @@ const {
 } = require('./services/workerAvailability');
 
 const app = express();
-
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -361,6 +361,62 @@ app.get('/api/workers/enrollments/status', async (req, res, next) => {
   }
 });
 
+app.post('/api/workers/verification/verify-otp', async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
+      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+      idToken: Joi.string().trim().min(100).required(),
+    }).validate(req.body, { stripUnknown: true });
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid mobile number and Firebase ID token are required',
+      });
+    }
+
+    const decodedToken = await getFirebaseAuth().verifyIdToken(value.idToken);
+    const verifiedPhone = decodedToken.phone_number || '';
+    const normalizedPhone = verifiedPhone.replace(/^\+91/, '');
+    if (normalizedPhone !== value.phone) {
+      return res.status(401).json({
+        success: false,
+        message: 'The verified phone number does not match the requested number',
+      });
+    }
+
+    const enrollmentResult = await pool.query(
+      `
+        SELECT
+          id,
+          phone,
+          full_name AS "fullName",
+          review_status AS "reviewStatus",
+          worker_status AS "workerStatus",
+          kyc_status AS "kycStatus",
+          submitted_at AS "submittedAt",
+          updated_at AS "updatedAt"
+        FROM worker_enrollments
+        WHERE phone = $1
+        LIMIT 1
+      `,
+      [normalizedPhone]
+    );
+
+    res.json({
+      success: true,
+      message: 'Phone verified successfully',
+      phone: normalizedPhone,
+      firebaseUid: decodedToken.uid,
+      verified: true,
+      exists: enrollmentResult.rowCount > 0,
+      enrollment: enrollmentResult.rows[0] || null,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 const documentSchema = Joi.object({
   type: Joi.string().required(),
   path: Joi.string().allow('').default(''),
@@ -408,7 +464,7 @@ function requireAdmin(req, res) {
 }
 
 function consentTextForVersion(version) {
-  return `Gofer worker verification consent ${version}: I allow Gofer to verify my identity, documents, selfie, background, and eligibility through internal review and third-party verification providers for customer safety.`;
+  return `Workida worker verification consent ${version}: I allow Workida to verify my identity, documents, selfie, background, and eligibility through internal review and third-party verification providers for customer safety.`;
 }
 
 function documentBytes(document) {
