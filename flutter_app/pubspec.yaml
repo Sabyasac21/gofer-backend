@@ -1,0 +1,98 @@
+name: gofer
+description: A production-grade on-demand labor marketplace
+
+publish_to: 'none'
+
+version: 1.0.12+14
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.3.6
+  riverpod_annotation: ^2.1.1
+
+  # Networking
+  dio: ^5.1.1
+  chopper: ^8.3.0
+
+  # Local Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  sqflite: ^2.2.8
+  shared_preferences: ^2.1.1
+
+  # Location & Maps
+  geolocator: ^13.0.4
+  google_maps_flutter: ^2.2.5
+  flutter_polyline_points: ^3.1.0
+
+  # Real-time
+  socket_io_client: ^2.0.1
+
+  # UI & Design
+  flutter_screenutil: ^5.8.4
+  cached_network_image: ^3.2.3
+  flutter_svg: ^2.0.5
+  flutter_tts: ^4.2.3
+  connectivity_plus: ^5.0.0
+
+  # Authentication
+  jwt_decoder: ^2.0.1
+  flutter_secure_storage: ^8.0.0
+  google_sign_in: ^6.1.4
+  firebase_auth: ^6.1.0
+
+  # Payment
+  razorpay_flutter: ^1.2.8
+
+  # File Handling
+  image_picker: ^0.8.7
+  image_cropper: ^12.2.1
+  camera: ^0.11.0+2
+  google_mlkit_face_detection: ^0.13.1
+  google_mlkit_text_recognition: ^0.15.1
+  file_picker: ^10.3.7
+  path_provider: ^2.0.15
+  video_player: ^2.7.0
+
+  # Analytics & Logging
+  sentry_flutter: ^9.22.0
+
+  # HTTP & Utilities
+  http: ^1.1.0
+  intl: ^0.18.1
+  uuid: ^4.5.1
+  logger: ^1.4.0
+  firebase_core: ^4.11.0
+  firebase_messaging: ^16.4.1
+  package_info_plus: ^9.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^2.0.0
+
+  # Testing
+  mockito: ^5.4.2
+  mocktail: ^1.0.0
+
+  # Build & Generation
+  build_runner: ^2.4.2
+  hive_generator: ^2.0.0
+  chopper_generator: ^8.0.3
+  riverpod_generator: ^2.3.0
+  freezed: ^2.4.1
+  json_serializable: ^6.7.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/

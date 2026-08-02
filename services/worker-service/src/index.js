@@ -1,10 +1,12 @@
 // services/worker-service/src/index.js
 
 const express = require('express');
+const fs = require('fs');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 const Joi = require('joi');
+const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 const logger = require('../../../shared/utils/logger');
@@ -429,7 +431,10 @@ const documentSchema = Joi.object({
       passed: Joi.boolean().required(),
       message: Joi.string().allow('').required()
     })
-  ).default([])
+  ).default([]),
+  extractedFields: Joi.object()
+    .pattern(Joi.string().max(80), Joi.string().max(200))
+    .default({})
 });
 
 const enrollmentSchema = Joi.object({
@@ -635,10 +640,11 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
             content_type,
             file_size_bytes,
             validation_checks,
+            extracted_fields,
             uploaded_at,
             updated_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, NOW(), NOW())
           ON CONFLICT (worker_enrollment_id, document_type) DO UPDATE SET
             id_type = EXCLUDED.id_type,
             storage_provider = EXCLUDED.storage_provider,
@@ -647,6 +653,7 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
             content_type = EXCLUDED.content_type,
             file_size_bytes = EXCLUDED.file_size_bytes,
             validation_checks = EXCLUDED.validation_checks,
+            extracted_fields = EXCLUDED.extracted_fields,
             uploaded_at = NOW(),
             updated_at = NOW()
         `,
@@ -661,6 +668,7 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
           document.contentType || null,
           bytes ? bytes.length : null,
           JSON.stringify(document.validationChecks || []),
+          JSON.stringify(document.extractedFields || {}),
         ]
       );
     }
@@ -904,6 +912,7 @@ app.get('/api/admin/workers/:id', async (req, res, next) => {
           content_type AS "contentType",
           file_size_bytes AS "fileSizeBytes",
           validation_checks AS "validationChecks",
+          extracted_fields AS "extractedFields",
           uploaded_at AS "uploadedAt"
         FROM worker_documents
         WHERE worker_enrollment_id = $1
@@ -945,6 +954,48 @@ app.get('/api/admin/workers/:id', async (req, res, next) => {
       },
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/admin/workers/:id/documents/:documentId', async (req, res, next) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+
+    const result = await pool.query(
+      `
+        SELECT storage_provider AS "storageProvider", storage_key AS "storageKey",
+               content_type AS "contentType"
+        FROM worker_documents
+        WHERE id = $1 AND worker_enrollment_id = $2
+      `,
+      [req.params.documentId, req.params.id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Document not found' });
+    }
+
+    const document = result.rows[0];
+    if (document.storageProvider !== 'local_mock') {
+      return res.status(501).json({
+        success: false,
+        message: 'This document storage provider is not available for preview.',
+      });
+    }
+
+    const storageRoot = path.resolve(
+      process.env.DOCUMENT_STORAGE_ROOT || '/app/storage/worker-documents'
+    );
+    const storagePath = path.resolve(document.storageKey);
+    if (!storagePath.startsWith(`${storageRoot}${path.sep}`)) {
+      return res.status(403).json({ success: false, message: 'Invalid document path' });
+    }
+    await fs.promises.access(storagePath, fs.constants.R_OK);
+    return res.type(document.contentType || 'application/octet-stream').sendFile(storagePath);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return res.status(404).json({ success: false, message: 'Document file not found' });
+    }
     next(error);
   }
 });
