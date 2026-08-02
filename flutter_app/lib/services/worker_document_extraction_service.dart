@@ -23,7 +23,8 @@ class WorkerDocumentExtractionService {
       final recognizedText = await recognizer.processImage(
         InputImage.fromFilePath(path),
       );
-      final text = _normalize(recognizedText.text);
+      final rawText = recognizedText.text;
+      final text = _normalize(rawText);
       final checks = <DocumentValidationCheck>[
         DocumentValidationCheck(
           label: 'Readable document text',
@@ -50,7 +51,7 @@ class WorkerDocumentExtractionService {
 
       return WorkerDocumentExtractionResult(
         checks: checks,
-        extractedFields: _safeFields(idType, text),
+        extractedFields: _safeFields(idType, rawText, text),
       );
     } catch (_) {
       return const WorkerDocumentExtractionResult(
@@ -92,12 +93,97 @@ class WorkerDocumentExtractionService {
     );
   }
 
-  Map<String, String> _safeFields(IndianIdType idType, String text) {
+  Map<String, String> _safeFields(
+    IndianIdType idType,
+    String rawText,
+    String text,
+  ) {
     final match = _documentNumber(idType, text);
-    return {
+    final fields = <String, String>{
       'detectedDocumentType': idType.name,
       if (match != null) 'documentNumberMasked': _mask(match),
     };
+    final name = _extractName(rawText);
+    final address = _extractAddress(rawText);
+    if (name != null) fields['documentName'] = name;
+    if (address != null) fields['documentAddress'] = address;
+    return fields;
+  }
+
+  String? _extractName(String rawText) {
+    final lines = _candidateLines(rawText);
+    for (final line in lines) {
+      final upper = line.toUpperCase();
+      if (upper.contains('NAME')) {
+        final value = line.split(':').skip(1).join(':').trim();
+        if (_looksLikeName(value)) return value;
+      }
+    }
+    for (final line in lines.skip(1)) {
+      if (_looksLikeName(line) && !_ignoredNameLine(line)) return line;
+    }
+    return null;
+  }
+
+  String? _extractAddress(String rawText) {
+    final lines = _candidateLines(rawText);
+    final start = lines.indexWhere(
+      (line) => RegExp(r'\b(ADDRESS|ADDR|S/O|D/O|W/O|C/O)\b')
+          .hasMatch(line.toUpperCase()),
+    );
+    if (start < 0) return null;
+
+    final values = <String>[];
+    for (final line in lines.skip(start)) {
+      final value = line
+          .replaceFirst(
+            RegExp(r'^\s*(ADDRESS|ADDR|S/O|D/O|W/O|C/O)\s*[:\-]?\s*',
+                caseSensitive: false),
+            '',
+          )
+          .trim();
+      if (value.isEmpty || _isDocumentLabel(value)) break;
+      values.add(value);
+      if (values.join(' ').length >= 180 || values.length == 3) break;
+    }
+    final result = values.join(', ').trim();
+    if (result.length < 6) return null;
+    return result.substring(0, result.length > 200 ? 200 : result.length);
+  }
+
+  List<String> _candidateLines(String rawText) {
+    return rawText
+        .split(RegExp(r'\r?\n'))
+        .map((line) => line.replaceAll(RegExp(r'\s+'), ' ').trim())
+        .where((line) => line.length >= 3)
+        .toList();
+  }
+
+  bool _looksLikeName(String value) {
+    final cleaned = value.replaceAll(RegExp(r'[^A-Za-z .-]'), '').trim();
+    final words = cleaned.split(RegExp(r'\s+')).where((word) => word.isNotEmpty);
+    return cleaned.length >= 3 && cleaned.length <= 60 && words.length >= 2;
+  }
+
+  bool _ignoredNameLine(String value) {
+    final upper = value.toUpperCase();
+    return _isDocumentLabel(value) ||
+        upper.contains('GOVERNMENT') ||
+        upper.contains('INDIA') ||
+        upper.contains('AADHAAR') ||
+        upper.contains('PASSPORT') ||
+        upper.contains('ELECTION');
+  }
+
+  bool _isDocumentLabel(String value) {
+    final upper = value.toUpperCase();
+    return upper.contains('DOB') ||
+        upper.contains('DATE OF BIRTH') ||
+        upper.contains('GENDER') ||
+        upper.contains('MALE') ||
+        upper.contains('FEMALE') ||
+        upper.contains('VALID') ||
+        upper.contains('IDENTIFICATION');
   }
 
   String? _documentNumber(IndianIdType idType, String text) {
