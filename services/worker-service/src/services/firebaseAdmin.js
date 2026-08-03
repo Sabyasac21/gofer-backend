@@ -22,4 +22,12 @@ function getFirebaseAuth() {
   return getFirebaseApp().auth();
 }
 
-module.exports = { getFirebaseApp, getFirebaseAuth };
+function getFirebaseStorageBucket() {
+  const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
+  if (!bucketName) {
+    throw new Error('FIREBASE_STORAGE_BUCKET is not configured');
+  }
+  return getFirebaseApp().storage().bucket(bucketName);
+}
+
+module.exports = { getFirebaseApp, getFirebaseAuth, getFirebaseStorageBucket };
