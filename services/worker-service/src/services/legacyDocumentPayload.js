@@ -25,7 +25,13 @@ function legacyDocumentBytes(documents, documentType) {
 }
 
 function documentMetadata(documents) {
-  return documents.map(({ contentBase64, ...document }) => document);
+  return documents.map(({ contentBase64, ...document }) => {
+    const { documentNumber, ...safeExtractedFields } = document.extractedFields || {};
+    return {
+      ...document,
+      extractedFields: safeExtractedFields,
+    };
+  });
 }
 
 module.exports = {

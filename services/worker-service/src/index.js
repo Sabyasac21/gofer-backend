@@ -21,6 +21,12 @@ const {
   documentMetadata,
   legacyDocumentBytes,
 } = require('./services/legacyDocumentPayload');
+const {
+  decryptDocumentField,
+  documentFieldEncryptionStatus,
+  ensureDocumentSensitiveFieldsSchema,
+  protectExtractedFields,
+} = require('./services/documentFieldEncryption');
 const { buildMockHyperVergeResult } = require('./services/kycProvider');
 const { getFirebaseAuth } = require('./services/firebaseAdmin');
 const {
@@ -100,6 +106,7 @@ app.get('/health', (req, res) => {
     release: process.env.RENDER_GIT_COMMIT || null,
     push: getMessagingStatus(),
     documentStorage,
+    documentFieldEncryption: documentFieldEncryptionStatus(),
     timestamp: new Date().toISOString()
   });
 });
@@ -622,6 +629,10 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
 
     for (const document of value.documents) {
       const bytes = documentBytes(document);
+      const protectedDocumentFields = protectExtractedFields(
+        value.idType,
+        document.extractedFields || {},
+      );
       let stored = {
         storageProvider: 'metadata_only',
         storageKey: document.path || '',
@@ -650,10 +661,15 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
             file_size_bytes,
             validation_checks,
             extracted_fields,
+            document_number_encrypted,
+            document_number_last4,
             uploaded_at,
             updated_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, NOW(), NOW())
+          VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb,
+            $12, $13, NOW(), NOW()
+          )
           ON CONFLICT (worker_enrollment_id, document_type) DO UPDATE SET
             id_type = EXCLUDED.id_type,
             storage_provider = EXCLUDED.storage_provider,
@@ -663,6 +679,8 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
             file_size_bytes = EXCLUDED.file_size_bytes,
             validation_checks = EXCLUDED.validation_checks,
             extracted_fields = EXCLUDED.extracted_fields,
+            document_number_encrypted = EXCLUDED.document_number_encrypted,
+            document_number_last4 = EXCLUDED.document_number_last4,
             uploaded_at = NOW(),
             updated_at = NOW()
         `,
@@ -677,7 +695,9 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
           document.contentType || null,
           bytes ? bytes.length : null,
           JSON.stringify(document.validationChecks || []),
-          JSON.stringify(document.extractedFields || {}),
+          JSON.stringify(protectedDocumentFields.safeFields),
+          protectedDocumentFields.encryptedNumber,
+          protectedDocumentFields.numberLast4,
         ]
       );
     }
@@ -922,6 +942,8 @@ app.get('/api/admin/workers/:id', async (req, res, next) => {
           file_size_bytes AS "fileSizeBytes",
           validation_checks AS "validationChecks",
           extracted_fields AS "extractedFields",
+          document_number_last4 AS "documentNumberLast4",
+          (document_number_encrypted IS NOT NULL) AS "fullDocumentNumberAvailable",
           uploaded_at AS "uploadedAt"
         FROM worker_documents
         WHERE worker_enrollment_id = $1
@@ -1022,6 +1044,57 @@ app.get('/api/admin/workers/:id/documents/:documentId', async (req, res, next) =
     if (error.code === 'INVALID_DOCUMENT_PATH') {
       return res.status(403).json({ success: false, message: 'Invalid document path' });
     }
+    next(error);
+  }
+});
+
+app.get('/api/admin/workers/:id/documents/:documentId/number', async (req, res, next) => {
+  try {
+    const adminId = requireAdmin(req, res);
+    if (!adminId) return;
+
+    const result = await pool.query(
+      `
+        SELECT document_number_encrypted AS "encryptedNumber",
+               document_type AS "documentType"
+        FROM worker_documents
+        WHERE id = $1 AND worker_enrollment_id = $2
+      `,
+      [req.params.documentId, req.params.id],
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Document not found' });
+    }
+    if (!result.rows[0].encryptedNumber) {
+      return res.status(404).json({
+        success: false,
+        code: 'FULL_DOCUMENT_NUMBER_NOT_AVAILABLE',
+        message: 'The full ID number was not retained for this enrollment.',
+      });
+    }
+
+    const documentNumber = decryptDocumentField(result.rows[0].encryptedNumber);
+    await pool.query(
+      `
+        INSERT INTO admin_audit_logs (admin_id, action, worker_enrollment_id, details)
+        VALUES ($1, 'reveal_document_number', $2, $3::jsonb)
+      `,
+      [
+        adminId,
+        req.params.id,
+        JSON.stringify({
+          documentId: req.params.documentId,
+          documentType: result.rows[0].documentType,
+        }),
+      ],
+    );
+
+    res.set({
+      'Cache-Control': 'private, no-store, max-age=0',
+      Pragma: 'no-cache',
+    });
+    return res.json({ success: true, documentNumber });
+  } catch (error) {
     next(error);
   }
 });
@@ -1325,6 +1398,7 @@ const PORT = process.env.PORT || 3003;
 const startServer = async () => {
   try {
     const documentStorage = validateDocumentStorageConfiguration();
+    await ensureDocumentSensitiveFieldsSchema(pool);
     await ensureDispatchSchema(pool);
     initializeMessaging(logger);
     app.listen(PORT, () => {

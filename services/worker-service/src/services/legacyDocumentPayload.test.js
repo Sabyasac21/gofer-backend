@@ -28,8 +28,24 @@ test('finds a legacy payload by document type', () => {
 
 test('removes Base64 content from newly persisted enrollment metadata', () => {
   assert.deepEqual(documentMetadata([
-    { type: 'selfie', contentBase64: 'private-payload', fileName: 'selfie.jpg' },
+    {
+      type: 'selfie',
+      contentBase64: 'private-payload',
+      fileName: 'selfie.jpg',
+      extractedFields: {
+        documentName: 'PRIYA SHARMA',
+        documentNumber: 'ABCDE1234F',
+        documentNumberMasked: 'XXXXXX234F',
+      },
+    },
   ]), [
-    { type: 'selfie', fileName: 'selfie.jpg' },
+    {
+      type: 'selfie',
+      fileName: 'selfie.jpg',
+      extractedFields: {
+        documentName: 'PRIYA SHARMA',
+        documentNumberMasked: 'XXXXXX234F',
+      },
+    },
   ]);
 });
