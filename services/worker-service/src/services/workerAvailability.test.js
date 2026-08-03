@@ -22,12 +22,12 @@ function readyChecks(overrides = {}) {
   };
 }
 
-test('explicit online choice remains ready when the app heartbeat is stale', () => {
+test('stale heartbeat prevents readiness and dispatch eligibility', () => {
   assert.equal(availabilityStatus(readyChecks(), null), 'ready');
   assert.equal(availabilityStatus(readyChecks({ available: false }), 'accepted'), 'busy');
   assert.equal(
     availabilityStatus(readyChecks({ presenceFresh: false }), null),
-    'ready',
+    'stale',
   );
   assert.equal(
     availabilityStatus(readyChecks({ notificationReady: false }), null),
@@ -45,6 +45,7 @@ test('explicit online choice remains ready when the app heartbeat is stale', () 
 
 test('eligibility reasons explain every failed production check', () => {
   const reasons = eligibilityReasons(readyChecks({
+    presenceFresh: false,
     notificationReady: false,
     locationReady: false,
     serviceEligible: false,
@@ -53,6 +54,7 @@ test('eligibility reasons explain every failed production check', () => {
   }), { taskSpecific: true });
 
   assert.deepEqual(reasons, [
+    'Worker heartbeat is stale',
     'Notification token is unavailable',
     'Current location is unavailable',
     'Worker already has an active job',

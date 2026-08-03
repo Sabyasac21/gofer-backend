@@ -261,11 +261,11 @@ async function getMatchDiagnostics(client, value) {
       )::int AS "serviceEligible",
       COUNT(*) FILTER (
         WHERE has_presence AND is_online AND has_token
-          AND has_location AND matches_service AND is_available
+          AND is_fresh AND has_location AND matches_service AND is_available
       )::int AS "available",
       COUNT(*) FILTER (
         WHERE has_presence AND is_online AND has_token
-          AND has_location AND matches_service AND is_available
+          AND is_fresh AND has_location AND matches_service AND is_available
           AND distance_km <= travel_radius_km
       )::int AS "withinTravelRadius"
     FROM evaluated
@@ -315,9 +315,8 @@ async function dispatchJob(pool, value) {
       JOIN worker_presence wp ON wp.worker_enrollment_id = we.id
       WHERE we.worker_status = 'verified'
         AND wp.online = TRUE
+        AND wp.last_seen_at > NOW() - INTERVAL '12 hours'
         AND wp.fcm_token IS NOT NULL AND wp.fcm_token <> ''
-        -- Online is an explicit worker choice, not a process heartbeat.
-        -- Firebase can wake a terminated Android app to deliver this offer.
         AND wp.latitude IS NOT NULL AND wp.longitude IS NOT NULL
         AND NOT EXISTS (
           SELECT 1 FROM worker_job_dispatches active_job
