@@ -1,18 +1,26 @@
 // services/worker-service/src/index.js
 
 const express = require('express');
-const fs = require('fs');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 const Joi = require('joi');
-const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
 const logger = require('../../../shared/utils/logger');
 const { errorHandler } = require('../../../shared/utils/errorHandler');
 const pool = require('./config/db');
-const { saveWorkerDocument } = require('./services/documentStorage');
+const {
+  DocumentNotFoundError,
+  readWorkerDocument,
+  saveWorkerDocument,
+  validateDocumentStorageConfiguration,
+} = require('./services/documentStorage');
+const {
+  documentBytes,
+  documentMetadata,
+  legacyDocumentBytes,
+} = require('./services/legacyDocumentPayload');
 const { buildMockHyperVergeResult } = require('./services/kycProvider');
 const { getFirebaseAuth } = require('./services/firebaseAdmin');
 const {
@@ -80,11 +88,18 @@ app.get('/metrics', async (req, res) => {
 // ─────────────────────────────────────────────────────────
 
 app.get('/health', (req, res) => {
+  let documentStorage;
+  try {
+    documentStorage = validateDocumentStorageConfiguration();
+  } catch (error) {
+    documentStorage = { configured: false, message: error.message };
+  }
   res.json({
     status: 'healthy',
     service: 'worker-service',
     release: process.env.RENDER_GIT_COMMIT || null,
     push: getMessagingStatus(),
+    documentStorage,
     timestamp: new Date().toISOString()
   });
 });
@@ -423,7 +438,9 @@ const documentSchema = Joi.object({
   type: Joi.string().required(),
   path: Joi.string().allow('').default(''),
   fileName: Joi.string().allow('', null),
-  contentType: Joi.string().allow('', null).default('image/jpeg'),
+  contentType: Joi.string()
+    .valid('image/jpeg', 'image/png', 'image/heic', 'image/heif', '', null)
+    .default('image/jpeg'),
   contentBase64: Joi.string().allow('', null),
   validationChecks: Joi.array().items(
     Joi.object({
@@ -470,14 +487,6 @@ function requireAdmin(req, res) {
 
 function consentTextForVersion(version) {
   return `Workida worker verification consent ${version}: I allow Workida to verify my identity, documents, selfie, background, and eligibility through internal review and third-party verification providers for customer safety.`;
-}
-
-function documentBytes(document) {
-  if (!document.contentBase64) return null;
-  const cleaned = document.contentBase64.includes(',')
-    ? document.contentBase64.split(',').pop()
-    : document.contentBase64;
-  return Buffer.from(cleaned, 'base64');
 }
 
 app.post('/api/workers/enrollments', async (req, res, next) => {
@@ -578,7 +587,7 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
         value.enrollmentTypes,
         value.professionalCategories,
         value.idType || null,
-        JSON.stringify(value.documents),
+        JSON.stringify(documentMetadata(value.documents)),
         value.consentAccepted,
         value.consentVersion,
         value.consentAcceptedAt || null
@@ -964,10 +973,15 @@ app.get('/api/admin/workers/:id/documents/:documentId', async (req, res, next) =
 
     const result = await pool.query(
       `
-        SELECT storage_provider AS "storageProvider", storage_key AS "storageKey",
-               content_type AS "contentType"
-        FROM worker_documents
-        WHERE id = $1 AND worker_enrollment_id = $2
+        SELECT wd.storage_provider AS "storageProvider",
+               wd.storage_key AS "storageKey",
+               wd.document_type AS "documentType",
+               wd.file_name AS "fileName",
+               wd.content_type AS "contentType",
+               we.documents AS "legacyDocuments"
+        FROM worker_documents wd
+        JOIN worker_enrollments we ON we.id = wd.worker_enrollment_id
+        WHERE wd.id = $1 AND wd.worker_enrollment_id = $2
       `,
       [req.params.documentId, req.params.id]
     );
@@ -976,25 +990,37 @@ app.get('/api/admin/workers/:id/documents/:documentId', async (req, res, next) =
     }
 
     const document = result.rows[0];
-    if (document.storageProvider !== 'local_mock') {
-      return res.status(501).json({
+    let bytes;
+    let source = document.storageProvider;
+    try {
+      bytes = await readWorkerDocument(document);
+    } catch (error) {
+      if (!(error instanceof DocumentNotFoundError)) throw error;
+      bytes = legacyDocumentBytes(document.legacyDocuments, document.documentType);
+      source = 'legacy_database_fallback';
+    }
+
+    if (!bytes) {
+      return res.status(404).json({
         success: false,
-        message: 'This document storage provider is not available for preview.',
+        code: 'DOCUMENT_BYTES_NOT_FOUND',
+        message: 'The stored image file is missing and no legacy recovery payload is available.',
       });
     }
 
-    const storageRoot = path.resolve(
-      process.env.DOCUMENT_STORAGE_ROOT || '/app/storage/worker-documents'
-    );
-    const storagePath = path.resolve(document.storageKey);
-    if (!storagePath.startsWith(`${storageRoot}${path.sep}`)) {
-      return res.status(403).json({ success: false, message: 'Invalid document path' });
-    }
-    await fs.promises.access(storagePath, fs.constants.R_OK);
-    return res.type(document.contentType || 'application/octet-stream').sendFile(storagePath);
+    const safeFileName = (document.fileName || `${document.documentType}.jpg`)
+      .replace(/[^a-zA-Z0-9._-]/g, '_');
+    res.set({
+      'Cache-Control': 'private, no-store, max-age=0',
+      'Content-Disposition': `inline; filename="${safeFileName}"`,
+      'Content-Length': String(bytes.length),
+      'X-Document-Source': source,
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return res.type(document.contentType || 'application/octet-stream').send(bytes);
   } catch (error) {
-    if (error.code === 'ENOENT') {
-      return res.status(404).json({ success: false, message: 'Document file not found' });
+    if (error.code === 'INVALID_DOCUMENT_PATH') {
+      return res.status(403).json({ success: false, message: 'Invalid document path' });
     }
     next(error);
   }
@@ -1298,10 +1324,12 @@ const PORT = process.env.PORT || 3003;
 
 const startServer = async () => {
   try {
+    const documentStorage = validateDocumentStorageConfiguration();
     await ensureDispatchSchema(pool);
     initializeMessaging(logger);
     app.listen(PORT, () => {
       logger.info(`Worker Service running on port ${PORT}`);
+      logger.info(`Worker document storage: ${documentStorage.provider}`);
       logger.info(`Service ID: ${uuidv4()}`);
     });
   } catch (error) {
