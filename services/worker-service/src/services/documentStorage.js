@@ -118,7 +118,75 @@ async function readWorkerDocument({ storageProvider: provider, storageKey }) {
   );
 }
 
+async function deleteWorkerDocument({ storageProvider: provider, storageKey }) {
+  if (provider === 'firebase') {
+    await getFirebaseStorageBucket().file(storageKey).delete({
+      ignoreNotFound: true,
+    });
+    return;
+  }
+
+  if (provider === 'local_mock') {
+    try {
+      await fs.unlink(safeLocalPath(storageKey));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+    return;
+  }
+
+  const error = new Error(
+    `Document storage provider ${provider || 'unknown'} cannot be deleted`,
+  );
+  error.code = 'UNSUPPORTED_DOCUMENT_STORAGE_PROVIDER';
+  throw error;
+}
+
+async function deleteWorkerDocumentPrefix({ enrollmentId, provider }) {
+  if (!/^[a-f0-9-]{36}$/i.test(enrollmentId)) {
+    const error = new Error('Invalid worker enrollment id');
+    error.code = 'INVALID_ENROLLMENT_ID';
+    throw error;
+  }
+
+  if (provider === 'firebase') {
+    await getFirebaseStorageBucket().deleteFiles({
+      prefix: `worker-documents/${enrollmentId}/`,
+      force: true,
+    });
+    return;
+  }
+
+  if (provider === 'local_mock') {
+    await fs.rm(safeLocalPath(path.join(storageRoot(), enrollmentId)), {
+      recursive: true,
+      force: true,
+    });
+    return;
+  }
+
+  const error = new Error(
+    `Document storage provider ${provider || 'unknown'} cannot be deleted`,
+  );
+  error.code = 'UNSUPPORTED_DOCUMENT_STORAGE_PROVIDER';
+  throw error;
+}
+
+async function deleteWorkerDocumentsForEnrollment({ enrollmentId, documents = [] }) {
+  const providers = new Set([storageProvider()]);
+  for (const document of documents) {
+    if (document.storageProvider) providers.add(document.storageProvider);
+    await deleteWorkerDocument(document);
+  }
+  for (const provider of providers) {
+    await deleteWorkerDocumentPrefix({ enrollmentId, provider });
+  }
+}
+
 module.exports = {
+  deleteWorkerDocument,
+  deleteWorkerDocumentPrefix,
+  deleteWorkerDocumentsForEnrollment,
   DocumentNotFoundError,
   readWorkerDocument,
   saveWorkerDocument,

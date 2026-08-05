@@ -11,11 +11,16 @@ const logger = require('../../../shared/utils/logger');
 const { errorHandler } = require('../../../shared/utils/errorHandler');
 const pool = require('./config/db');
 const {
+  deleteWorkerDocumentsForEnrollment,
   DocumentNotFoundError,
   readWorkerDocument,
   saveWorkerDocument,
   validateDocumentStorageConfiguration,
 } = require('./services/documentStorage');
+const {
+  permanentlyDeleteWorker,
+  WorkerDeletionError,
+} = require('./services/workerDeletion');
 const {
   documentBytes,
   documentMetadata,
@@ -28,6 +33,9 @@ const {
   protectExtractedFields,
 } = require('./services/documentFieldEncryption');
 const { buildMockHyperVergeResult } = require('./services/kycProvider');
+const {
+  validateAadhaarEnrollment,
+} = require('./services/aadhaarEnrollmentValidation');
 const { getFirebaseAuth } = require('./services/firebaseAdmin');
 const {
   initializeMessaging,
@@ -473,8 +481,8 @@ const enrollmentSchema = Joi.object({
   travelRadiusKm: Joi.number().integer().min(1).max(50).default(3),
   enrollmentTypes: Joi.array().items(Joi.string().valid('helper', 'professional')).min(1).required(),
   professionalCategories: Joi.array().items(Joi.string().max(120)).default([]),
-  idType: Joi.string().max(80).allow('', null),
-  documents: Joi.array().items(documentSchema).default([]),
+  idType: Joi.string().valid('aadhaar').required(),
+  documents: Joi.array().items(documentSchema).min(3).max(3).required(),
   consentAccepted: Joi.boolean().valid(true).required(),
   consentVersion: Joi.string().max(40).default('worker-verification-v1'),
   consentAcceptedAt: Joi.date().iso().allow(null)
@@ -519,6 +527,15 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'Professional workers must choose at least one category'
+      });
+    }
+
+    const aadhaarValidationErrors = validateAadhaarEnrollment(value);
+    if (aadhaarValidationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aadhaar front, back and live selfie verification is required',
+        errors: aadhaarValidationErrors,
       });
     }
 
@@ -1104,6 +1121,55 @@ const workerApprovalSchema = Joi.object({
     .trim()
     .max(1000)
     .default('Worker documents and profile approved by administrator'),
+});
+
+const workerDeletionSchema = Joi.object({
+  confirmation: Joi.string().valid('DELETE').required(),
+  expectedPhone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+});
+
+app.delete('/api/admin/workers/:id', async (req, res, next) => {
+  const adminId = requireAdmin(req, res);
+  if (!adminId) return;
+
+  const { error: idError } = Joi.string().uuid().required().validate(req.params.id);
+  if (idError) {
+    return res.status(400).json({ success: false, message: 'Invalid worker id' });
+  }
+
+  const { error, value } = workerDeletionSchema.validate(req.body || {}, {
+    stripUnknown: true,
+  });
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details[0].message,
+    });
+  }
+
+  const client = await pool.connect();
+  try {
+    const summary = await permanentlyDeleteWorker({
+      client,
+      workerId: req.params.id,
+      expectedPhone: value.expectedPhone,
+      adminId,
+      requestId: req.requestId,
+      deleteStoredDocuments: deleteWorkerDocumentsForEnrollment,
+    });
+    return res.json({ success: true, deleted: true, summary });
+  } catch (deleteError) {
+    if (deleteError instanceof WorkerDeletionError) {
+      return res.status(deleteError.statusCode).json({
+        success: false,
+        code: deleteError.code,
+        message: deleteError.message,
+      });
+    }
+    return next(deleteError);
+  } finally {
+    client.release();
+  }
 });
 
 app.post('/api/admin/workers/:id/approve', async (req, res, next) => {
