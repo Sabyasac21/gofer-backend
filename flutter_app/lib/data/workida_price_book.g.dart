@@ -1,0 +1,633 @@
+// GENERATED FROM assets/config/workida-price-book.json. Do not hand edit.
+
+enum PriceBookPricingModel { fixed, hourly, inspection, quote, perUnit, tiered }
+
+class PriceBookVariant {
+  const PriceBookVariant({required this.id, required this.name, required this.customerPriceMinor, required this.workerPayoutMinor, required this.durationMinMinutes, required this.durationMaxMinutes});
+  final String id;
+  final String name;
+  final int customerPriceMinor;
+  final int workerPayoutMinor;
+  final int durationMinMinutes;
+  final int durationMaxMinutes;
+}
+
+class CityPriceAdjustment {
+  const CityPriceAdjustment(this.customerMultiplier, this.workerMultiplier);
+  final double customerMultiplier;
+  final double workerMultiplier;
+}
+
+class PriceBookEntry {
+  const PriceBookEntry({required this.serviceId, required this.model, required this.unit, required this.customerPriceMinor, required this.visitFeeMinor, required this.workerBasePayoutMinor, required this.workerVisitPayoutMinor, required this.minimumOrderMinor, required this.workerOvertimeRateMinor, required this.durationMinMinutes, required this.durationMaxMinutes, required this.inspectionFeeAbsorbed, required this.absorptionThresholdMinor, required this.cityAdjustments, required this.includedScope, required this.exclusions, this.variants = const []});
+  final String serviceId;
+  final PriceBookPricingModel model;
+  final String unit;
+  final int customerPriceMinor;
+  final int visitFeeMinor;
+  final int workerBasePayoutMinor;
+  final int workerVisitPayoutMinor;
+  final int minimumOrderMinor;
+  final int workerOvertimeRateMinor;
+  final int durationMinMinutes;
+  final int durationMaxMinutes;
+  final bool inspectionFeeAbsorbed;
+  final int absorptionThresholdMinor;
+  final Map<String, CityPriceAdjustment> cityAdjustments;
+  final List<String> includedScope;
+  final List<String> exclusions;
+  final List<PriceBookVariant> variants;
+}
+
+class WorkidaPriceBookData {
+  const WorkidaPriceBookData._();
+  static const version = 'workida-in-2026-08-23-v2';
+  static const defaultCity = 'bengaluru';
+  static const entries = <String, PriceBookEntry>{
+    'ac_diagnosis': PriceBookEntry(
+      serviceId: 'ac_diagnosis', model: PriceBookPricingModel.inspection, unit: 'AC',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected ac repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'ac_gas_cooling_issue': PriceBookEntry(
+      serviceId: 'ac_gas_cooling_issue', model: PriceBookPricingModel.inspection, unit: 'AC',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected ac gas / cooling issue issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'ac_installation': PriceBookEntry(
+      serviceId: 'ac_installation', model: PriceBookPricingModel.tiered, unit: 'AC',
+      customerPriceMinor: 159900, visitFeeMinor: 0, workerBasePayoutMinor: 110000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 90, durationMaxMinutes: 150, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected ac installation', 'Basic operational and safety check after installation'],
+      exclusions: ['Device, wire, brackets, fittings or other materials and spare parts', 'New concealed wiring, civil work or changes beyond the selected scope', 'Work on an unsafe supply or inaccessible mounting area'],
+      variants: [
+        PriceBookVariant(id: 'window', name: 'Window AC installation', customerPriceMinor: 129900, workerPayoutMinor: 89000, durationMinMinutes: 90, durationMaxMinutes: 150),
+        PriceBookVariant(id: 'split', name: 'Split AC installation', customerPriceMinor: 209900, workerPayoutMinor: 145000, durationMinMinutes: 120, durationMaxMinutes: 240),
+      ],
+    ),
+    'ac_service_cleaning': PriceBookEntry(
+      serviceId: 'ac_service_cleaning', model: PriceBookPricingModel.perUnit, unit: 'AC',
+      customerPriceMinor: 59900, visitFeeMinor: 0, workerBasePayoutMinor: 41000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 50, durationMaxMinutes: 75, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and cleaning of safely accessible serviceable components', 'Routine service labour described in the selected booking', 'Basic operational check after reassembly'],
+      exclusions: ['Gas, replacement parts, materials or unrelated repairs', 'Dismantling that requires specialist workshop work', 'A guarantee that cleaning alone resolves an existing fault'],
+    ),
+    'balcony_cleaning': PriceBookEntry(
+      serviceId: 'balcony_cleaning', model: PriceBookPricingModel.perUnit, unit: 'balcony',
+      customerPriceMinor: 29900, visitFeeMinor: 0, workerBasePayoutMinor: 19000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 35, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Removing loose dust and sweeping the accessible balcony floor', 'Washing or mopping suitable accessible surfaces when water is available', 'Wiping accessible railing and ledge interiors'],
+      exclusions: ['Unsafe exterior ledges, façade work or work outside protective railings', 'Bird-net removal, pest treatment or heavy waste disposal', 'Drain repair, waterproofing or permanent stain restoration'],
+    ),
+    'bathroom_cleaning': PriceBookEntry(
+      serviceId: 'bathroom_cleaning', model: PriceBookPricingModel.perUnit, unit: 'bathroom',
+      customerPriceMinor: 44900, visitFeeMinor: 0, workerBasePayoutMinor: 30000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 50, durationMaxMinutes: 70, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Cleaning the selected toilet, basin, floor and accessible wall tiles', 'Wiping accessible taps, fittings and exterior surfaces', 'Rinsing and basic cleanup of the serviced bathroom'],
+      exclusions: ['Plumbing repair, drain blockage removal or replacement parts', 'Permanent hard-water damage, deep mould or pest treatment', 'Ceiling, tank or unsafe high-access cleaning'],
+    ),
+    'bathroom_fittings': PriceBookEntry(
+      serviceId: 'bathroom_fittings', model: PriceBookPricingModel.perUnit, unit: 'fitting',
+      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection of the reported bathroom fitting installation issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
+      exclusions: ['Taps, pipes, valves, sealants or other materials and replacement parts', 'Concealed-pipe tracing, wall or tile breaking and civil restoration', 'Unrelated fixtures or additional work without your approval'],
+    ),
+    'bed_frame_repair': PriceBookEntry(
+      serviceId: 'bed_frame_repair', model: PriceBookPricingModel.tiered, unit: 'bed',
+      customerPriceMinor: 24900, visitFeeMinor: 0, workerBasePayoutMinor: 17000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 75, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment of the selected bed-frame repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
+      exclusions: ['Wood, laminate, hinges, locks, hardware, polish or other materials', 'Workshop fabrication, structural alteration or unrelated furniture', 'Hidden damage or additional work without customer approval'],
+    ),
+    'bedroom_cleaning': PriceBookEntry(
+      serviceId: 'bedroom_cleaning', model: PriceBookPricingModel.perUnit, unit: 'room',
+      customerPriceMinor: 69900, visitFeeMinor: 0, workerBasePayoutMinor: 47500, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 75, durationMaxMinutes: 120, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Dusting accessible furniture and room surfaces', 'Sweeping or vacuuming and mopping accessible floors', 'Basic room reset around movable everyday items'],
+      exclusions: ['Laundry, wardrobe interiors or detailed organisation', 'Mattress or upholstery wet cleaning unless separately booked', 'Heavy furniture moving or treatment of pests and mould'],
+    ),
+    'carpet_cleaning': PriceBookEntry(
+      serviceId: 'carpet_cleaning', model: PriceBookPricingModel.perUnit, unit: 'small carpet',
+      customerPriceMinor: 39900, visitFeeMinor: 0, workerBasePayoutMinor: 26000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 40, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Dry vacuuming of the selected accessible carpet area', 'Suitable spot treatment and wet extraction where material permits', 'Basic cleanup and drying guidance'],
+      exclusions: ['Guaranteed removal of permanent stains, fading or odour', 'Carpet repair, dyeing, pest treatment or delicate-material restoration', 'Moving heavy furniture or treating inaccessible floor areas'],
+    ),
+    'cctv_installation_repair': PriceBookEntry(
+      serviceId: 'cctv_installation_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected cctv installation & repair', 'Basic operational and safety check after installation'],
+      exclusions: ['Device, wire, brackets, fittings or other materials and spare parts', 'New concealed wiring, civil work or changes beyond the selected scope', 'Work on an unsafe supply or inaccessible mounting area'],
+    ),
+    'ceiling_painting': PriceBookEntry(
+      serviceId: 'ceiling_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment and basic preparation of the selected ceiling painting area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
+      exclusions: ['Paint, primer, putty, masking supplies, scaffolding or other materials', 'Damp-proofing, structural crack repair or treatment of active leakage', 'Furniture moving or additional coats and areas not approved in scope'],
+    ),
+    'chimney_repair_service': PriceBookEntry(
+      serviceId: 'chimney_repair_service', model: PriceBookPricingModel.inspection, unit: 'appliance',
+      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected chimney repair & service issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'cooler_repair': PriceBookEntry(
+      serviceId: 'cooler_repair', model: PriceBookPricingModel.inspection, unit: 'cooler',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected cooler repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'decorative_light_installation': PriceBookEntry(
+      serviceId: 'decorative_light_installation', model: PriceBookPricingModel.tiered, unit: 'fixture',
+      customerPriceMinor: 49900, visitFeeMinor: 0, workerBasePayoutMinor: 34000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 45, durationMaxMinutes: 90, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected decorative light installation', 'Basic operational and safety check after installation'],
+      exclusions: ['Device, wire, brackets, fittings or other materials and spare parts', 'New concealed wiring, civil work or changes beyond the selected scope', 'Work on an unsafe supply or inaccessible mounting area'],
+    ),
+    'dishwasher_repair': PriceBookEntry(
+      serviceId: 'dishwasher_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected dishwasher repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'door_repair': PriceBookEntry(
+      serviceId: 'door_repair', model: PriceBookPricingModel.tiered, unit: 'door',
+      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 20, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment of the selected door & hinge repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
+      exclusions: ['Wood, laminate, hinges, locks, hardware, polish or other materials', 'Workshop fabrication, structural alteration or unrelated furniture', 'Hidden damage or additional work without customer approval'],
+    ),
+    'doorbell_repair': PriceBookEntry(
+      serviceId: 'doorbell_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 14900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 10500, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 20, durationMaxMinutes: 40, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected doorbell repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'doors_grills_painting': PriceBookEntry(
+      serviceId: 'doors_grills_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment and basic preparation of the selected doors, windows & grills area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
+      exclusions: ['Paint, primer, putty, masking supplies, scaffolding or other materials', 'Damp-proofing, structural crack repair or treatment of active leakage', 'Furniture moving or additional coats and areas not approved in scope'],
+    ),
+    'drain_blockage': PriceBookEntry(
+      serviceId: 'drain_blockage', model: PriceBookPricingModel.tiered, unit: 'drain',
+      customerPriceMinor: 34900, visitFeeMinor: 0, workerBasePayoutMinor: 24000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 45, durationMaxMinutes: 90, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection of the reported drain blockage clearing issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
+      exclusions: ['Taps, pipes, valves, sealants or other materials and replacement parts', 'Concealed-pipe tracing, wall or tile breaking and civil restoration', 'Unrelated fixtures or additional work without your approval'],
+      variants: [
+        PriceBookVariant(id: 'basic', name: 'Basic manual clearing', customerPriceMinor: 34900, workerPayoutMinor: 24000, durationMinMinutes: 45, durationMaxMinutes: 90),
+        PriceBookVariant(id: 'machine', name: 'Machine-assisted clearing', customerPriceMinor: 69900, workerPayoutMinor: 48000, durationMinMinutes: 60, durationMaxMinutes: 120),
+      ],
+    ),
+    'dth_set_top_box': PriceBookEntry(
+      serviceId: 'dth_set_top_box', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected dth / set-top box issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'exterior_wall_painting': PriceBookEntry(
+      serviceId: 'exterior_wall_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
+      customerPriceMinor: 0, visitFeeMinor: 49900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 35000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment and basic preparation of the selected exterior wall painting area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
+      exclusions: ['Paint, primer, putty, masking supplies, scaffolding or other materials', 'Damp-proofing, structural crack repair or treatment of active leakage', 'Furniture moving or additional coats and areas not approved in scope'],
+    ),
+    'fan_cleaning': PriceBookEntry(
+      serviceId: 'fan_cleaning', model: PriceBookPricingModel.perUnit, unit: 'fan',
+      customerPriceMinor: 9900, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 10, durationMaxMinutes: 15, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Dusting and wiping accessible fan blades, body and canopy', 'Cleaning the stated number and type of safely reachable fans', 'Basic cleanup of fallen dust below the work area'],
+      exclusions: ['Fan repair, rewiring, balancing or replacement parts', 'Unsafe work at excessive height or inaccessible mounting points', 'Painting or restoration of rusted or damaged surfaces'],
+    ),
+    'fan_installation_repair': PriceBookEntry(
+      serviceId: 'fan_installation_repair', model: PriceBookPricingModel.tiered, unit: 'fan',
+      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 20, durationMaxMinutes: 45, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected fan repair & installation', 'Basic operational and safety check after installation'],
+      exclusions: ['Device, wire, brackets, fittings or other materials and spare parts', 'New concealed wiring, civil work or changes beyond the selected scope', 'Work on an unsafe supply or inaccessible mounting area'],
+    ),
+    'fan_regulator_capacitor': PriceBookEntry(
+      serviceId: 'fan_regulator_capacitor', model: PriceBookPricingModel.perUnit, unit: 'fan',
+      customerPriceMinor: 9900, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected fan regulator / capacitor issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'floor_scrubbing': PriceBookEntry(
+      serviceId: 'floor_scrubbing', model: PriceBookPricingModel.tiered, unit: 'up to 500 sq ft',
+      customerPriceMinor: 89900, visitFeeMinor: 0, workerBasePayoutMinor: 60000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 90, durationMaxMinutes: 150, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Sweeping or vacuuming the selected accessible floor area', 'Material-appropriate manual or machine scrubbing', 'Removal of cleaning residue from the treated area'],
+      exclusions: ['Polishing, sealing, crystallisation or floor restoration', 'Repair of cracks, loose tiles, grout or water damage', 'Moving heavy furniture or guaranteed removal of permanent stains'],
+      variants: [
+        PriceBookVariant(id: 'up_to_500_sqft', name: 'Up to 500 sq ft', customerPriceMinor: 89900, workerPayoutMinor: 60000, durationMinMinutes: 90, durationMaxMinutes: 150),
+        PriceBookVariant(id: '501_to_1000_sqft', name: '501–1,000 sq ft', customerPriceMinor: 159900, workerPayoutMinor: 108000, durationMinMinutes: 150, durationMaxMinutes: 240),
+        PriceBookVariant(id: '1001_to_1500_sqft', name: '1,001–1,500 sq ft', customerPriceMinor: 219900, workerPayoutMinor: 149000, durationMinMinutes: 210, durationMaxMinutes: 330),
+      ],
+    ),
+    'full_home_painting': PriceBookEntry(
+      serviceId: 'full_home_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
+      customerPriceMinor: 0, visitFeeMinor: 49900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 35000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment and basic preparation of the selected full-home interior painting area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
+      exclusions: ['Paint, primer, putty, masking supplies, scaffolding or other materials', 'Damp-proofing, structural crack repair or treatment of active leakage', 'Furniture moving or additional coats and areas not approved in scope'],
+    ),
+    'furniture_assembly': PriceBookEntry(
+      serviceId: 'furniture_assembly', model: PriceBookPricingModel.tiered, unit: 'item',
+      customerPriceMinor: 39900, visitFeeMinor: 0, workerBasePayoutMinor: 27000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 45, durationMaxMinutes: 120, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment of the selected furniture assembly scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
+      exclusions: ['Wood, laminate, hinges, locks, hardware, polish or other materials', 'Workshop fabrication, structural alteration or unrelated furniture', 'Hidden damage or additional work without customer approval'],
+      variants: [
+        PriceBookVariant(id: 'small', name: 'Chair or small table', customerPriceMinor: 39900, workerPayoutMinor: 27000, durationMinMinutes: 45, durationMaxMinutes: 75),
+        PriceBookVariant(id: 'standard', name: 'Single bed or standard cabinet', customerPriceMinor: 59900, workerPayoutMinor: 41000, durationMinMinutes: 60, durationMaxMinutes: 120),
+        PriceBookVariant(id: 'complex', name: 'Double or hydraulic bed', customerPriceMinor: 129900, workerPayoutMinor: 89000, durationMinMinutes: 120, durationMaxMinutes: 240),
+      ],
+    ),
+    'furniture_repair': PriceBookEntry(
+      serviceId: 'furniture_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 14900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 10500, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 20, durationMaxMinutes: 40, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment of the selected furniture repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
+      exclusions: ['Wood, laminate, hinges, locks, hardware, polish or other materials', 'Workshop fabrication, structural alteration or unrelated furniture', 'Hidden damage or additional work without customer approval'],
+    ),
+    'geyser_repair': PriceBookEntry(
+      serviceId: 'geyser_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
+      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected geyser repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'home_theatre_speaker': PriceBookEntry(
+      serviceId: 'home_theatre_speaker', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 75, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected home theatre / speaker issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'household_help_session': PriceBookEntry(
+      serviceId: 'household_help_session', model: PriceBookPricingModel.hourly, unit: 'hour',
+      customerPriceMinor: 19900, visitFeeMinor: 0, workerBasePayoutMinor: 14000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 14000,
+      durationMinMinutes: 60, durationMaxMinutes: 180, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Routine chores you select, worked in your chosen priority order', 'One verified helper reserved for the booked time block', 'Reasonable tidying of the immediate work areas before leaving'],
+      exclusions: ['Deep cleaning, repairs, hazardous work or heavy lifting', 'A guarantee that every chore finishes if the selected workload exceeds the booked time', 'Cleaning supplies or an unapproved extension of time'],
+    ),
+    'induction_cooktop_repair': PriceBookEntry(
+      serviceId: 'induction_cooktop_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected induction / cooktop repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'inverter_ups_repair': PriceBookEntry(
+      serviceId: 'inverter_ups_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected inverter / ups repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'kitchen_cleaning': PriceBookEntry(
+      serviceId: 'kitchen_cleaning', model: PriceBookPricingModel.tiered, unit: 'kitchen',
+      customerPriceMinor: 79900, visitFeeMinor: 0, workerBasePayoutMinor: 55000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 90, durationMaxMinutes: 150, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Degreasing accessible counters, sink, platform and wall tiles', 'Wiping cabinet and appliance exteriors included in your selection', 'Sweeping and mopping the accessible kitchen floor'],
+      exclusions: ['Inside cabinets, chimney, oven or refrigerator unless selected', 'Dishwashing, pest treatment or drain and appliance repair', 'Removal of permanent burns, corrosion or material damage'],
+      variants: [
+        PriceBookVariant(id: 'basic', name: 'Basic kitchen cleaning', customerPriceMinor: 49900, workerPayoutMinor: 34000, durationMinMinutes: 60, durationMaxMinutes: 90),
+        PriceBookVariant(id: 'deep', name: 'Deep kitchen cleaning', customerPriceMinor: 79900, workerPayoutMinor: 55000, durationMinMinutes: 90, durationMaxMinutes: 150),
+        PriceBookVariant(id: 'vacant', name: 'Vacant kitchen deep clean', customerPriceMinor: 99900, workerPayoutMinor: 69000, durationMinMinutes: 120, durationMaxMinutes: 180),
+      ],
+    ),
+    'lighting_installation': PriceBookEntry(
+      serviceId: 'lighting_installation', model: PriceBookPricingModel.perUnit, unit: 'fixture',
+      customerPriceMinor: 9900, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected light repair & installation', 'Basic operational and safety check after installation'],
+      exclusions: ['Device, wire, brackets, fittings or other materials and spare parts', 'New concealed wiring, civil work or changes beyond the selected scope', 'Work on an unsafe supply or inaccessible mounting area'],
+    ),
+    'lock_handle_installation': PriceBookEntry(
+      serviceId: 'lock_handle_installation', model: PriceBookPricingModel.perUnit, unit: 'door',
+      customerPriceMinor: 19900, visitFeeMinor: 0, workerBasePayoutMinor: 13500, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment of the selected door lock & handle installation scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
+      exclusions: ['Wood, laminate, hinges, locks, hardware, polish or other materials', 'Workshop fabrication, structural alteration or unrelated furniture', 'Hidden damage or additional work without customer approval'],
+    ),
+    'mattress_cleaning': PriceBookEntry(
+      serviceId: 'mattress_cleaning', model: PriceBookPricingModel.perUnit, unit: 'mattress',
+      customerPriceMinor: 39900, visitFeeMinor: 0, workerBasePayoutMinor: 26000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Vacuuming accessible mattress surfaces and seams', 'Suitable spot treatment or extraction for the declared mattress', 'Basic cleanup around the treatment area'],
+      exclusions: ['Guaranteed removal of old stains, odours, mould or allergens', 'Pest or bedbug treatment and mattress repair', 'Cleaning a mattress that is unsafe to wet-treat'],
+    ),
+    'mcb_fuse_repair': PriceBookEntry(
+      serviceId: 'mcb_fuse_repair', model: PriceBookPricingModel.perUnit, unit: 'MCB/fuse',
+      customerPriceMinor: 19900, visitFeeMinor: 0, workerBasePayoutMinor: 13500, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 20, durationMaxMinutes: 45, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected mcb / fuse repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'microwave_repair': PriceBookEntry(
+      serviceId: 'microwave_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected microwave repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'modular_kitchen_carpentry': PriceBookEntry(
+      serviceId: 'modular_kitchen_carpentry', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment of the selected modular-kitchen cabinet repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
+      exclusions: ['Wood, laminate, hinges, locks, hardware, polish or other materials', 'Workshop fabrication, structural alteration or unrelated furniture', 'Hidden damage or additional work without customer approval'],
+    ),
+    'moving_assistance': PriceBookEntry(
+      serviceId: 'moving_assistance', model: PriceBookPricingModel.hourly, unit: 'helper-hour',
+      customerPriceMinor: 29900, visitFeeMinor: 0, workerBasePayoutMinor: 21000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 21000,
+      durationMinMinutes: 60, durationMaxMinutes: 480, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Lifting, carrying, loading or unloading the items you declare', 'The confirmed number of helpers for the booked duration', 'Reasonable placement of handled items at the agreed pickup or drop area'],
+      exclusions: ['Vehicle, driver, packing supplies or transport charges', 'Dismantling, installation or specialist handling unless separately agreed', 'Hazardous, undeclared or unsafe-to-lift items'],
+    ),
+    'outdoor_sensor_light': PriceBookEntry(
+      serviceId: 'outdoor_sensor_light', model: PriceBookPricingModel.fixed, unit: 'fixture',
+      customerPriceMinor: 24900, visitFeeMinor: 0, workerBasePayoutMinor: 17000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected outdoor / sensor light issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'packing_help': PriceBookEntry(
+      serviceId: 'packing_help', model: PriceBookPricingModel.hourly, unit: 'helper-hour',
+      customerPriceMinor: 24900, visitFeeMinor: 0, workerBasePayoutMinor: 17000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 17000,
+      durationMinMinutes: 60, durationMaxMinutes: 480, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Sorting and packing the household items you identify', 'Labelling and arranging packed boxes in the agreed area', 'Routine handling within the booked time and workload'],
+      exclusions: ['Packing materials unless you provide them', 'Specialist packing of valuables, hazardous goods or fragile artwork', 'Transport, heavy lifting or dismantling furniture unless separately booked'],
+    ),
+    'pipe_leakage': PriceBookEntry(
+      serviceId: 'pipe_leakage', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection of the reported pipe or tap leakage issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
+      exclusions: ['Taps, pipes, valves, sealants or other materials and replacement parts', 'Concealed-pipe tracing, wall or tile breaking and civil restoration', 'Unrelated fixtures or additional work without your approval'],
+    ),
+    'post_construction_cleaning': PriceBookEntry(
+      serviceId: 'post_construction_cleaning', model: PriceBookPricingModel.quote, unit: 'inspection',
+      customerPriceMinor: 0, visitFeeMinor: 49900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 35000, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Removal of fine dust and loose residue from accessible selected areas', 'Wiping accessible fixtures and surfaces and cleaning floors', 'Collection of light cleaning waste after loose debris is removed'],
+      exclusions: ['Removal or transport of rubble, cement bags or heavy construction waste', 'Paint, cement or adhesive removal that may damage a surface', 'Repairs, hazardous material handling or unsafe high-access work'],
+    ),
+    'refrigerator_repair': PriceBookEntry(
+      serviceId: 'refrigerator_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected refrigerator repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'room_painting': PriceBookEntry(
+      serviceId: 'room_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment and basic preparation of the selected room painting area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
+      exclusions: ['Paint, primer, putty, masking supplies, scaffolding or other materials', 'Damp-proofing, structural crack repair or treatment of active leakage', 'Furniture moving or additional coats and areas not approved in scope'],
+    ),
+    'router_network_setup': PriceBookEntry(
+      serviceId: 'router_network_setup', model: PriceBookPricingModel.fixed, unit: 'router',
+      customerPriceMinor: 29900, visitFeeMinor: 0, workerBasePayoutMinor: 20000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected router / network setup', 'Basic operational and safety check after installation'],
+      exclusions: ['Device, wire, brackets, fittings or other materials and spare parts', 'New concealed wiring, civil work or changes beyond the selected scope', 'Work on an unsafe supply or inaccessible mounting area'],
+    ),
+    'shelf_installation': PriceBookEntry(
+      serviceId: 'shelf_installation', model: PriceBookPricingModel.perUnit, unit: 'shelf',
+      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 20, durationMaxMinutes: 40, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment of the selected shelf installation scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
+      exclusions: ['Wood, laminate, hinges, locks, hardware, polish or other materials', 'Workshop fabrication, structural alteration or unrelated furniture', 'Hidden damage or additional work without customer approval'],
+    ),
+    'sink_basin_installation': PriceBookEntry(
+      serviceId: 'sink_basin_installation', model: PriceBookPricingModel.fixed, unit: 'unit',
+      customerPriceMinor: 49900, visitFeeMinor: 0, workerBasePayoutMinor: 34000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 60, durationMaxMinutes: 90, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection of the reported sink & basin installation issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
+      exclusions: ['Taps, pipes, valves, sealants or other materials and replacement parts', 'Concealed-pipe tracing, wall or tile breaking and civil restoration', 'Unrelated fixtures or additional work without your approval'],
+    ),
+    'sofa_cleaning': PriceBookEntry(
+      serviceId: 'sofa_cleaning', model: PriceBookPricingModel.perUnit, unit: '3-seat sofa',
+      customerPriceMinor: 49900, visitFeeMinor: 0, workerBasePayoutMinor: 33000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 40, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Dry vacuuming of accessible seats, backs and crevices', 'Material-appropriate spot treatment and extraction where suitable', 'Basic cleanup of the immediate work area'],
+      exclusions: ['Guaranteed removal of permanent stains, dye transfer or odour', 'Repair of torn fabric, foam, frame or upholstery', 'Cleaning materials that are unsafe for the declared fabric'],
+    ),
+    'surface_preparation': PriceBookEntry(
+      serviceId: 'surface_preparation', model: PriceBookPricingModel.quote, unit: 'inspection',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment and basic preparation of the selected putty & surface preparation area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
+      exclusions: ['Paint, primer, putty, masking supplies, scaffolding or other materials', 'Damp-proofing, structural crack repair or treatment of active leakage', 'Furniture moving or additional coats and areas not approved in scope'],
+    ),
+    'switch_socket_wiring_repair': PriceBookEntry(
+      serviceId: 'switch_socket_wiring_repair', model: PriceBookPricingModel.perUnit, unit: 'point',
+      customerPriceMinor: 9900, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected switch, socket & wiring repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'tank_pipeline_repair': PriceBookEntry(
+      serviceId: 'tank_pipeline_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 45, durationMaxMinutes: 90, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection of the reported water-tank & pipeline repair issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
+      exclusions: ['Taps, pipes, valves, sealants or other materials and replacement parts', 'Concealed-pipe tracing, wall or tile breaking and civil restoration', 'Unrelated fixtures or additional work without your approval'],
+    ),
+    'tap_mixer_replacement': PriceBookEntry(
+      serviceId: 'tap_mixer_replacement', model: PriceBookPricingModel.perUnit, unit: 'basic tap',
+      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection of the reported tap & mixer replacement issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
+      exclusions: ['Taps, pipes, valves, sealants or other materials and replacement parts', 'Concealed-pipe tracing, wall or tile breaking and civil restoration', 'Unrelated fixtures or additional work without your approval'],
+    ),
+    'texture_accent_wall': PriceBookEntry(
+      serviceId: 'texture_accent_wall', model: PriceBookPricingModel.quote, unit: 'inspection',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment and basic preparation of the selected texture & accent wall area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
+      exclusions: ['Paint, primer, putty, masking supplies, scaffolding or other materials', 'Damp-proofing, structural crack repair or treatment of active leakage', 'Furniture moving or additional coats and areas not approved in scope'],
+    ),
+    'toilet_flush_repair': PriceBookEntry(
+      serviceId: 'toilet_flush_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection of the reported toilet & flush repair issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
+      exclusions: ['Taps, pipes, valves, sealants or other materials and replacement parts', 'Concealed-pipe tracing, wall or tile breaking and civil restoration', 'Unrelated fixtures or additional work without your approval'],
+    ),
+    'tv_installation': PriceBookEntry(
+      serviceId: 'tv_installation', model: PriceBookPricingModel.tiered, unit: 'TV',
+      customerPriceMinor: 39900, visitFeeMinor: 0, workerBasePayoutMinor: 27000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 75, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected tv installation', 'Basic operational and safety check after installation'],
+      exclusions: ['Device, wire, brackets, fittings or other materials and spare parts', 'New concealed wiring, civil work or changes beyond the selected scope', 'Work on an unsafe supply or inaccessible mounting area'],
+      variants: [
+        PriceBookVariant(id: 'tabletop', name: 'Tabletop setup', customerPriceMinor: 29900, workerPayoutMinor: 20000, durationMinMinutes: 30, durationMaxMinutes: 45),
+        PriceBookVariant(id: 'wall_up_to_43', name: 'Wall mount up to 43 inch', customerPriceMinor: 39900, workerPayoutMinor: 27000, durationMinMinutes: 45, durationMaxMinutes: 75),
+        PriceBookVariant(id: 'wall_over_43', name: 'Wall mount over 43 inch', customerPriceMinor: 59900, workerPayoutMinor: 41000, durationMinMinutes: 60, durationMaxMinutes: 90),
+      ],
+    ),
+    'tv_repair': PriceBookEntry(
+      serviceId: 'tv_repair', model: PriceBookPricingModel.inspection, unit: 'TV',
+      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected tv repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'voltage_power_issues': PriceBookEntry(
+      serviceId: 'voltage_power_issues', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected voltage / power issues issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'wall_touch_up': PriceBookEntry(
+      serviceId: 'wall_touch_up', model: PriceBookPricingModel.tiered, unit: 'small patch job',
+      customerPriceMinor: 69900, visitFeeMinor: 0, workerBasePayoutMinor: 48000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 120, durationMaxMinutes: 240, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment and basic preparation of the selected wall touch-up area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
+      exclusions: ['Paint, primer, putty, masking supplies, scaffolding or other materials', 'Damp-proofing, structural crack repair or treatment of active leakage', 'Furniture moving or additional coats and areas not approved in scope'],
+      variants: [
+        PriceBookVariant(id: 'small_patch', name: 'Small patch job', customerPriceMinor: 69900, workerPayoutMinor: 48000, durationMinMinutes: 120, durationMaxMinutes: 240),
+        PriceBookVariant(id: 'single_wall', name: 'Single wall touch-up', customerPriceMinor: 149900, workerPayoutMinor: 103000, durationMinMinutes: 240, durationMaxMinutes: 480),
+      ],
+    ),
+    'wardrobe_cabinet_repair': PriceBookEntry(
+      serviceId: 'wardrobe_cabinet_repair', model: PriceBookPricingModel.tiered, unit: 'unit',
+      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 20, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Assessment of the selected wardrobe & cabinet repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
+      exclusions: ['Wood, laminate, hinges, locks, hardware, polish or other materials', 'Workshop fabrication, structural alteration or unrelated furniture', 'Hidden damage or additional work without customer approval'],
+    ),
+    'washing_machine_repair': PriceBookEntry(
+      serviceId: 'washing_machine_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
+      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected washing machine repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'water_pump_plumbing': PriceBookEntry(
+      serviceId: 'water_pump_plumbing', model: PriceBookPricingModel.inspection, unit: 'visit',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 45, durationMaxMinutes: 90, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection of the reported water-pump connection issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
+      exclusions: ['Taps, pipes, valves, sealants or other materials and replacement parts', 'Concealed-pipe tracing, wall or tile breaking and civil restoration', 'Unrelated fixtures or additional work without your approval'],
+    ),
+    'water_purifier_repair': PriceBookEntry(
+      serviceId: 'water_purifier_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
+      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Inspection and diagnosis of the selected water purifier repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
+      exclusions: ['Spare parts, consumables, gas, wire or replacement equipment', 'Unrelated faults, concealed wiring, civil work or added scope without approval', 'Manufacturer warranty work or workshop-level component repair'],
+    ),
+    'whole_home_cleaning': PriceBookEntry(
+      serviceId: 'whole_home_cleaning', model: PriceBookPricingModel.tiered, unit: 'apartment',
+      customerPriceMinor: 299900, visitFeeMinor: 0, workerBasePayoutMinor: 210000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 180, durationMaxMinutes: 300, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Dusting and wiping accessible surfaces in the rooms you select', 'Sweeping or vacuuming and mopping accessible floors', 'Selected bathroom cleaning and kitchen exterior-surface cleaning'],
+      exclusions: ['Inside cabinets or appliances unless explicitly selected and priced', 'Pest, mould, hazardous waste or permanent stain removal', 'High exterior windows, heavy furniture moving or post-construction debris'],
+      variants: [
+        PriceBookVariant(id: '1bhk_unfurnished', name: '1 BHK, unfurnished', customerPriceMinor: 299900, workerPayoutMinor: 210000, durationMinMinutes: 180, durationMaxMinutes: 300),
+        PriceBookVariant(id: '2bhk_unfurnished', name: '2 BHK, unfurnished', customerPriceMinor: 379900, workerPayoutMinor: 265000, durationMinMinutes: 240, durationMaxMinutes: 360),
+        PriceBookVariant(id: '3bhk_unfurnished', name: '3 BHK, unfurnished', customerPriceMinor: 469900, workerPayoutMinor: 325000, durationMinMinutes: 300, durationMaxMinutes: 420),
+        PriceBookVariant(id: '1bhk_furnished', name: '1 BHK, furnished', customerPriceMinor: 349900, workerPayoutMinor: 245000, durationMinMinutes: 210, durationMaxMinutes: 330),
+        PriceBookVariant(id: '2bhk_furnished', name: '2 BHK, furnished', customerPriceMinor: 439900, workerPayoutMinor: 305000, durationMinMinutes: 270, durationMaxMinutes: 390),
+        PriceBookVariant(id: '3bhk_furnished', name: '3 BHK, furnished', customerPriceMinor: 539900, workerPayoutMinor: 370000, durationMinMinutes: 330, durationMaxMinutes: 480),
+      ],
+    ),
+    'window_cleaning': PriceBookEntry(
+      serviceId: 'window_cleaning', model: PriceBookPricingModel.perUnit, unit: 'standard set',
+      customerPriceMinor: 29900, visitFeeMinor: 0, workerBasePayoutMinor: 19000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      durationMinMinutes: 45, durationMaxMinutes: 75, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
+      cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
+      includedScope: ['Cleaning accessible glass panels on the selected safe side', 'Wiping accessible frames, tracks and sills', 'Removing ordinary dust, marks and loose residue'],
+      exclusions: ['Unsafe exterior or high-rise access and rope work', 'Glass scratch, seal, frame or hardware repair', 'Removal of permanent etching, paint or construction residue unless agreed'],
+    ),
+  };
+}
+
