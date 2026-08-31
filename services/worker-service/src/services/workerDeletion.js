@@ -1,3 +1,21 @@
+const crypto = require('crypto');
+
+function phoneResetHash(phone) {
+  const secret = process.env.WORKER_RESET_HASH_SECRET
+    || process.env.WORKER_ADMIN_KEY
+    || 'workida-local-reset-secret';
+  return crypto.createHmac('sha256', secret).update(phone).digest('hex');
+}
+
+async function ensureWorkerDeletionSchema(pool) {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS worker_enrollment_resets (
+      phone_hash CHAR(64) PRIMARY KEY,
+      deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+}
+
 class WorkerDeletionError extends Error {
   constructor(message, code, statusCode) {
     super(message);
@@ -40,6 +58,13 @@ async function permanentlyDeleteWorker({
         409,
       );
     }
+
+    await client.query(
+      `INSERT INTO worker_enrollment_resets(phone_hash, deleted_at)
+       VALUES($1, NOW())
+       ON CONFLICT(phone_hash) DO UPDATE SET deleted_at = EXCLUDED.deleted_at`,
+      [phoneResetHash(expectedPhone)],
+    );
 
     const documentsResult = await client.query(
       `
@@ -134,6 +159,8 @@ async function permanentlyDeleteWorker({
 }
 
 module.exports = {
+  ensureWorkerDeletionSchema,
   permanentlyDeleteWorker,
+  phoneResetHash,
   WorkerDeletionError,
 };

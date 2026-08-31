@@ -3,16 +3,69 @@ const { getFirebaseApp } = require('./firebaseAdmin');
 const { v4: uuidv4 } = require('uuid');
 const { previousStatusesFor } = require('./jobLifecycle');
 const { getPendingWorkerJob } = require('./pendingJob');
+const { appendEvent } = require('./marketplaceTransaction');
+const {
+  buildPricingConfig,
+  calculateCancellation,
+  calculateEstimate,
+} = require('../../../../shared/pricing/workidaPricing');
 const {
   messagingErrorCode,
   summarizeMessagingResponses,
 } = require('./firebaseDiagnostics');
+const {
+  eventId,
+  enqueueNotificationEvent,
+} = require('../../../../shared/notifications/outbox');
 
 let messaging = null;
 let messagingLogger = console;
 let messagingProjectId = null;
 const JOB_OFFER_TTL_MS = 120000;
 const MAX_REPLACEMENT_ATTEMPTS = 2;
+
+// Server-owned capability routing. The client sends the stable key, but it
+// cannot expand the eligible worker pool by altering display/category text.
+const CAPABILITY_WORKER_CATEGORIES = Object.freeze({
+  switch_socket_wiring_repair: ['Electrician'],
+  mcb_fuse_repair: ['Electrician'],
+  doorbell_repair: ['Electrician'],
+  inverter_ups_repair: ['Inverter Battery Technician', 'Electrician'],
+  voltage_power_issues: ['Electrician'],
+  fan_repair_installation: ['Electrician'],
+  light_repair_installation: ['Electrician'],
+  decorative_light_installation: ['Electrician'],
+  fan_regulator_capacitor: ['Electrician'],
+  outdoor_sensor_light: ['Electrician'],
+  ac_repair: ['AC Technician'],
+  ac_service_cleaning: ['AC Technician'],
+  ac_installation: ['AC Technician'],
+  ac_gas_cooling_issue: ['AC Technician'],
+  cooler_repair: ['AC Technician', 'Appliance Repair Technician'],
+  refrigerator_repair: ['Fridge Repair Technician', 'Appliance Repair Technician'],
+  washing_machine_repair: ['Washing Machine Technician', 'Appliance Repair Technician'],
+  microwave_repair: ['Appliance Repair Technician'],
+  geyser_repair: ['Geyser Repair Technician', 'Appliance Repair Technician'],
+  dishwasher_repair: ['Appliance Repair Technician'],
+  chimney_repair_service: ['Appliance Repair Technician'],
+  induction_cooktop_repair: ['Appliance Repair Technician'],
+  water_purifier_repair: ['RO Water Purifier Technician'],
+  tv_repair: ['TV Repair Technician'],
+  tv_installation: ['TV Repair Technician'],
+  dth_set_top_box: ['TV Repair Technician'],
+  home_theatre_speaker: ['TV Repair Technician'],
+  router_network_setup: ['Internet Technician'],
+  cctv_installation_repair: ['CCTV Technician'],
+});
+
+function normalizedWorkerCategories(value) {
+  if (value.capabilityKey && CAPABILITY_WORKER_CATEGORIES[value.capabilityKey]) {
+    return CAPABILITY_WORKER_CATEGORIES[value.capabilityKey];
+  }
+  return value.eligibleWorkerCategories?.length
+    ? value.eligibleWorkerCategories
+    : [value.category];
+}
 
 function initializeMessaging(logger) {
   messagingLogger = logger || console;
@@ -81,14 +134,23 @@ async function ensureDispatchSchema(pool) {
     CREATE TABLE IF NOT EXISTS worker_job_dispatches (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       customer_task_id VARCHAR(120) NOT NULL,
+      customer_id UUID,
       service_type VARCHAR(30) NOT NULL,
       category VARCHAR(120) NOT NULL,
+      service_id VARCHAR(120),
+      capability_key VARCHAR(120),
+      eligible_worker_categories TEXT[] NOT NULL DEFAULT '{}',
       title VARCHAR(160) NOT NULL,
       notes TEXT,
       address_text VARCHAR(500) NOT NULL,
       latitude DOUBLE PRECISION NOT NULL,
       longitude DOUBLE PRECISION NOT NULL,
       budget INTEGER NOT NULL,
+      duration_label VARCHAR(80),
+      estimated_duration_minutes INTEGER,
+      pricing_snapshot JSONB,
+      scheduled_at TIMESTAMPTZ,
+      arrival_verified_at TIMESTAMPTZ,
       status VARCHAR(30) NOT NULL DEFAULT 'offered',
       accepted_worker_id UUID REFERENCES worker_enrollments(id),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -97,11 +159,37 @@ async function ensureDispatchSchema(pool) {
     ALTER TABLE worker_job_dispatches
       ADD COLUMN IF NOT EXISTS replacement_attempts INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS customer_id UUID;
+    ALTER TABLE worker_job_dispatches
       ADD COLUMN IF NOT EXISTS excluded_worker_ids UUID[] NOT NULL DEFAULT '{}';
     ALTER TABLE worker_job_dispatches
       ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
     ALTER TABLE worker_job_dispatches
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS arrived_at TIMESTAMPTZ;
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS completion_requested_at TIMESTAMPTZ;
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS duration_label VARCHAR(80);
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS service_id VARCHAR(120);
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS capability_key VARCHAR(120);
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS eligible_worker_categories TEXT[] NOT NULL DEFAULT '{}';
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS estimated_duration_minutes INTEGER;
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS pricing_snapshot JSONB;
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ;
+    ALTER TABLE worker_job_dispatches
+      ADD COLUMN IF NOT EXISTS arrival_verified_at TIMESTAMPTZ;
     UPDATE worker_job_dispatches
       SET completed_at = COALESCE(completed_at, updated_at, created_at)
       WHERE status = 'completed' AND completed_at IS NULL;
@@ -220,7 +308,10 @@ async function getMatchDiagnostics(client, value) {
           ($3 = 'professional' AND 'professional' = ANY(we.enrollment_types)
             AND EXISTS (
               SELECT 1 FROM unnest(we.professional_categories) category
-              WHERE LOWER(category) = LOWER($4)
+              WHERE EXISTS (
+                SELECT 1 FROM unnest($5::text[]) eligible
+                WHERE LOWER(category) = LOWER(eligible)
+              )
             ))
         ) AS matches_service,
         NOT EXISTS (
@@ -269,11 +360,24 @@ async function getMatchDiagnostics(client, value) {
           AND distance_km <= travel_radius_km
       )::int AS "withinTravelRadius"
     FROM evaluated
-  `, [value.latitude, value.longitude, value.serviceType, value.category]);
+  `, [value.latitude, value.longitude, value.serviceType, value.category,
+    normalizedWorkerCategories(value)]);
   return result.rows[0];
 }
 
 async function dispatchJob(pool, value) {
+  let pricingConfig = null;
+  let authoritativeBudget = value.budget;
+  if (value.estimatedDurationMinutes && value.serviceId) {
+    pricingConfig = value.pricingSnapshot || buildPricingConfig({
+        serviceId: value.serviceId,
+        serviceType: value.serviceType,
+        capabilityKey: value.capabilityKey,
+        category: value.category,
+      });
+    const estimate = calculateEstimate(pricingConfig, value.estimatedDurationMinutes);
+    authoritativeBudget = Math.floor(estimate.estimatedTotalMinor / 100);
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -297,13 +401,47 @@ async function dispatchJob(pool, value) {
         existing: true,
       };
     }
+    const originalScope = (value.scope?.length ? value.scope : [value.title])
+      .map((label, index) => ({ id: `original-${index + 1}`, label }));
     const job = await client.query(`
       INSERT INTO worker_job_dispatches (
-        customer_task_id, service_type, category, title, notes, address_text,
-        latitude, longitude, budget
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
-    `, [value.customerTaskId, value.serviceType, value.category, value.title,
-      value.notes, value.address, value.latitude, value.longitude, value.budget]);
+        customer_task_id, customer_id, service_type, category, title, notes,
+        address_text, latitude, longitude, budget, duration_label, original_scope,
+        original_labour, current_labour, service_id, capability_key,
+        eligible_worker_categories, estimated_duration_minutes, pricing_snapshot,
+        scheduled_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$10,$10,$13,$14,$15,$16,$17::jsonb,$18)
+      RETURNING *
+    `, [value.customerTaskId, value.customerId, value.serviceType, value.category,
+      value.title, value.notes, value.address, value.latitude, value.longitude,
+      authoritativeBudget, value.durationLabel, JSON.stringify(originalScope),
+      value.serviceId, value.capabilityKey, normalizedWorkerCategories(value),
+      value.estimatedDurationMinutes || null,
+      pricingConfig ? JSON.stringify(pricingConfig) : null,
+      value.scheduledAt || null]);
+    await client.query(`
+      INSERT INTO marketplace_scope_versions(
+        job_id,version,scope,initiated_by_type,initiated_by_id,price_difference
+      ) VALUES($1,1,$2::jsonb,'customer',$3,0)
+      ON CONFLICT(job_id,version) DO NOTHING
+    `, [job.rows[0].id, JSON.stringify(originalScope), value.customerId]);
+    await appendEvent(client, {
+      jobId: job.rows[0].id,
+      eventType: 'job_created',
+      actorType: 'customer',
+      actorId: value.customerId,
+      metadata: { customerTaskId: value.customerTaskId },
+    });
+    await enqueueNotificationEvent(client, {
+      eventId: eventId('booking.created', job.rows[0].id, 'created'),
+      type: 'booking.created',
+      recipients: [{ type: 'customer', id: value.customerId }],
+      data: {
+        jobId: job.rows[0].id,
+        customerTaskId: value.customerTaskId,
+        title: value.title,
+      },
+    });
     const candidates = await client.query(`
       SELECT we.id, wp.fcm_token,
         6371 * 2 * ASIN(SQRT(
@@ -326,7 +464,13 @@ async function dispatchJob(pool, value) {
         AND (
           ($3 = 'helper' AND 'helper' = ANY(we.enrollment_types)) OR
           ($3 = 'professional' AND 'professional' = ANY(we.enrollment_types)
-            AND EXISTS (SELECT 1 FROM unnest(we.professional_categories) c WHERE LOWER(c) = LOWER($4)))
+            AND EXISTS (
+              SELECT 1 FROM unnest(we.professional_categories) c
+              WHERE EXISTS (
+                SELECT 1 FROM unnest($5::text[]) eligible
+                WHERE LOWER(c) = LOWER(eligible)
+              )
+            ))
         )
         AND 6371 * 2 * ASIN(SQRT(
           POWER(SIN(RADIANS(wp.latitude - $1) / 2), 2) +
@@ -334,7 +478,8 @@ async function dispatchJob(pool, value) {
           POWER(SIN(RADIANS(wp.longitude - $2) / 2), 2)
         )) <= we.travel_radius_km
       ORDER BY distance_km ASC LIMIT 50
-    `, [value.latitude, value.longitude, value.serviceType, value.category]);
+    `, [value.latitude, value.longitude, value.serviceType, value.category,
+      normalizedWorkerCategories(value)]);
     for (const worker of candidates.rows) {
       await client.query(
         'INSERT INTO worker_job_offers(job_id, worker_enrollment_id) VALUES ($1,$2)',
@@ -351,14 +496,17 @@ async function dispatchJob(pool, value) {
         const expiresAt = new Date(job.rows[0].expires_at).toISOString();
         const response = await messaging.sendEach(recipients.map((recipient) => ({
           token: recipient.fcm_token,
-          notification: { title: 'New Gofer job nearby', body: `${value.title} · Rs ${value.budget}` },
+          notification: { title: 'New Gofer job nearby', body: `${value.title} · Rs ${authoritativeBudget}` },
           data: {
             type: 'job_offer', jobId: job.rows[0].id, workType: value.category,
             customerArea: value.address,
             distanceKm: Number(recipient.distance_km).toFixed(1),
-            durationLabel: 'New request',
+            durationLabel: value.durationLabel || 'New request',
+            scheduledAt: value.scheduledAt
+              ? new Date(value.scheduledAt).toISOString()
+              : '',
             notes: value.notes || '',
-            budget: String(value.budget),
+            budget: String(authoritativeBudget),
             status: 'offered',
             expiresAt,
           },
@@ -418,7 +566,7 @@ async function respondToJob(pool, jobId, phone, decision) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const worker = await client.query('SELECT id FROM worker_enrollments WHERE phone=$1', [phone]);
+    const worker = await client.query('SELECT id,full_name FROM worker_enrollments WHERE phone=$1', [phone]);
     if (!worker.rowCount) return null;
     const offer = await client.query(`
       UPDATE worker_job_offers AS offer
@@ -438,12 +586,35 @@ async function respondToJob(pool, jobId, phone, decision) {
     if (!offer.rowCount) { await client.query('ROLLBACK'); return null; }
     if (decision === 'accepted') {
       const claimed = await client.query(`
-        UPDATE worker_job_dispatches SET status='accepted', accepted_worker_id=$1
-        WHERE id=$2 AND status='offered' AND expires_at>NOW() RETURNING id
+        UPDATE worker_job_dispatches
+        SET status='accepted', accepted_worker_id=$1,
+            accepted_at=COALESCE(accepted_at, NOW()), updated_at=NOW()
+        WHERE id=$2 AND status='offered' AND expires_at>NOW()
+        RETURNING id,customer_id,title,customer_task_id
       `, [worker.rows[0].id, jobId]);
       if (!claimed.rowCount) { await client.query('ROLLBACK'); return { accepted: false }; }
       await client.query(`UPDATE worker_job_offers SET status='expired', responded_at=NOW()
         WHERE job_id=$1 AND worker_enrollment_id<>$2 AND status='offered'`, [jobId, worker.rows[0].id]);
+      await appendEvent(client, {
+        jobId,
+        eventType: 'worker_accepted',
+        actorType: 'worker',
+        actorId: worker.rows[0].id,
+      });
+      await enqueueNotificationEvent(client, {
+        eventId: eventId('job.worker_assigned', jobId, worker.rows[0].id),
+        type: 'job.worker_assigned',
+        recipients: [
+          { type: 'customer', id: claimed.rows[0].customer_id },
+          { type: 'worker', id: worker.rows[0].id },
+        ],
+        data: {
+          jobId,
+          customerTaskId: claimed.rows[0].customer_task_id,
+          title: claimed.rows[0].title,
+          workerName: worker.rows[0].full_name,
+        },
+      });
     }
     await client.query('COMMIT');
     return { accepted: decision === 'accepted', decision };
@@ -526,7 +697,9 @@ async function getDispatchStatus(pool, customerTaskId) {
   const result = await pool.query(`
     SELECT
       d.id, d.customer_task_id, d.status, d.category, d.budget,
-      d.created_at, d.expires_at, d.replacement_attempts,
+      d.created_at, d.updated_at, d.expires_at, d.replacement_attempts,
+      d.accepted_at, d.arrived_at, d.started_at,
+      d.completion_requested_at, d.completed_at,
       we.id AS worker_id, we.full_name,
       we.enrollment_types, we.professional_categories,
       wp.latitude, wp.longitude,
@@ -547,7 +720,13 @@ async function getDispatchStatus(pool, customerTaskId) {
     status: row.status,
     offerCount: row.offer_count,
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
     expiresAt: row.expires_at,
+    acceptedAt: row.accepted_at,
+    arrivedAt: row.arrived_at,
+    startedAt: row.started_at,
+    completionRequestedAt: row.completion_requested_at,
+    completedAt: row.completed_at,
     replacementAttempts: row.replacement_attempts,
     worker: row.worker_id ? {
       id: row.worker_id,
@@ -578,7 +757,8 @@ async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
       ? ['completion_requested', 'started']
       : ['offered', 'accepted', 'arrived', 'started', 'completion_requested', status];
     const locked = await client.query(`
-      SELECT id, customer_task_id AS "customerTaskId", status
+      SELECT id, customer_task_id AS "customerTaskId", customer_id, title,
+        accepted_worker_id, status, pricing_snapshot, arrival_verified_at
       FROM worker_job_dispatches
       WHERE customer_task_id=$1
       ORDER BY created_at DESC
@@ -618,6 +798,10 @@ async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
       UPDATE worker_job_dispatches
       SET status = $2::varchar,
           updated_at = NOW(),
+          started_at = CASE
+            WHEN $2::varchar = 'started' THEN COALESCE(started_at, NOW())
+            ELSE started_at
+          END,
           completed_at = CASE
             WHEN $2::varchar = 'completed' THEN COALESCE(completed_at, NOW())
             ELSE completed_at
@@ -638,6 +822,36 @@ async function updateJobStatusByCustomerTask(pool, customerTaskId, status) {
             responded_at = COALESCE(responded_at, NOW())
         WHERE job_id = $1
       `, [result.rows[0].id, status]);
+      if (status === 'cancelled' && locked.rows[0].pricing_snapshot) {
+        const cancellation = calculateCancellation(
+          locked.rows[0].pricing_snapshot,
+          {
+            workerArrivalVerified: Boolean(locked.rows[0].arrival_verified_at),
+            cancelledByWorker: false,
+          },
+        );
+        await client.query(`
+          INSERT INTO marketplace_cancellations(
+            job_id,cancelled_by_type,arrival_verified,customer_charge_minor,
+            worker_payout_minor,currency,pricing_version
+          ) VALUES($1,'customer',$2,$3,$4,$5,$6)
+          ON CONFLICT(job_id) DO NOTHING
+        `, [result.rows[0].id, Boolean(locked.rows[0].arrival_verified_at),
+          cancellation.customerChargeMinor, cancellation.workerPayoutMinor,
+          cancellation.currency, locked.rows[0].pricing_snapshot.version]);
+      }
+      if (status === 'cancelled' && locked.rows[0].accepted_worker_id) {
+        await enqueueNotificationEvent(client, {
+          eventId: eventId('job.customer_cancelled', locked.rows[0].id, 'cancelled'),
+          type: 'job.customer_cancelled',
+          recipients: [{ type: 'worker', id: locked.rows[0].accepted_worker_id }],
+          data: {
+            jobId: locked.rows[0].id,
+            customerTaskId: locked.rows[0].customerTaskId,
+            title: locked.rows[0].title,
+          },
+        });
+      }
     }
     await client.query('COMMIT');
     updatedJob = result.rows[0] || null;
@@ -680,7 +894,10 @@ async function sendReplacementOffers(pool, job, candidates) {
         workType: job.category,
         customerArea: job.address_text,
         distanceKm: Number(recipient.distance_km).toFixed(1),
-        durationLabel: 'Replacement request',
+        durationLabel: job.duration_label || 'Replacement request',
+        scheduledAt: job.scheduled_at
+          ? new Date(job.scheduled_at).toISOString()
+          : '',
         notes: job.notes || '',
         budget: String(job.budget),
         status: 'offered',
@@ -799,6 +1016,10 @@ async function cancelAndRematchJob(pool, jobId, phone) {
       UPDATE worker_job_dispatches
       SET status=$3,
           accepted_worker_id=NULL,
+          accepted_at=NULL,
+          arrived_at=NULL,
+          started_at=NULL,
+          completion_requested_at=NULL,
           replacement_attempts=$4,
           excluded_worker_ids=$5::uuid[],
           expires_at=CASE
@@ -820,6 +1041,17 @@ async function cancelAndRematchJob(pool, jobId, phone) {
       SET status='cancelled', responded_at=NOW()
       WHERE job_id=$1 AND worker_enrollment_id=$2
     `, [jobId, workerId]);
+    await enqueueNotificationEvent(client, {
+      eventId: eventId('job.worker_cancelled', jobId, replacementAttempts),
+      type: 'job.worker_cancelled',
+      recipients: [{ type: 'customer', id: current.customer_id }],
+      data: {
+        jobId,
+        customerTaskId: current.customer_task_id,
+        title: current.title,
+        rematching: canRematch,
+      },
+    });
 
     let candidates = { rows: [], rowCount: 0 };
     if (canRematch) {
@@ -847,7 +1079,10 @@ async function cancelAndRematchJob(pool, jobId, phone) {
             ($3='professional' AND 'professional'=ANY(we.enrollment_types)
               AND EXISTS (
                 SELECT 1 FROM unnest(we.professional_categories) category
-                WHERE LOWER(category)=LOWER($4)
+                WHERE EXISTS (
+                  SELECT 1 FROM unnest($7::text[]) eligible
+                  WHERE LOWER(category)=LOWER(eligible)
+                )
               ))
           )
           AND 6371 * 2 * ASIN(SQRT(
@@ -869,6 +1104,9 @@ async function cancelAndRematchJob(pool, jobId, phone) {
         current.category,
         excludedWorkerIds,
         jobId,
+        current.eligible_worker_categories?.length
+          ? current.eligible_worker_categories
+          : [current.category],
       ]);
       for (const candidate of candidates.rows) {
         await client.query(`
@@ -914,25 +1152,118 @@ async function updateJobStatusByWorker(pool, jobId, phone, nextStatus) {
   if (nextStatus === 'cancelled') {
     return cancelAndRematchJob(pool, jobId, phone);
   }
-  const worker = await pool.query(
-    'SELECT id FROM worker_enrollments WHERE phone=$1 LIMIT 1',
-    [phone]
-  );
-  if (!worker.rowCount) return null;
-  const allowedPrevious = previousStatusesFor(nextStatus);
-  const result = await pool.query(`
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const worker = await client.query(
+      'SELECT id FROM worker_enrollments WHERE phone=$1 LIMIT 1',
+      [phone]
+    );
+    if (!worker.rowCount) {
+      await client.query('COMMIT');
+      return null;
+    }
+    const allowedPrevious = previousStatusesFor(nextStatus);
+    const result = await client.query(`
     UPDATE worker_job_dispatches
     SET status = $3,
         updated_at = NOW(),
+        arrived_at = CASE
+          WHEN $3 = 'arrived' THEN COALESCE(arrived_at, NOW())
+          ELSE arrived_at
+        END,
+        arrival_verified_at = CASE
+          WHEN $3 = 'arrived' THEN COALESCE(arrival_verified_at, NOW())
+          ELSE arrival_verified_at
+        END,
+        started_at = CASE
+          WHEN $3 = 'started' THEN COALESCE(started_at, NOW())
+          ELSE started_at
+        END,
+        completion_requested_at = CASE
+          WHEN $3 = 'completion_requested'
+            THEN COALESCE(completion_requested_at, NOW())
+          ELSE completion_requested_at
+        END,
         completed_at = CASE
           WHEN $3 = 'completed' THEN COALESCE(completed_at, NOW())
           ELSE completed_at
         END
     WHERE id = $1 AND accepted_worker_id = $2
       AND status = ANY($4::varchar[])
-    RETURNING id, customer_task_id AS "customerTaskId", status
-  `, [jobId, worker.rows[0].id, nextStatus, allowedPrevious]);
-  return result.rows[0] || null;
+      AND (
+        $3 <> 'arrived' OR EXISTS (
+          SELECT 1 FROM worker_presence wp
+          WHERE wp.worker_enrollment_id = $2
+            AND wp.online = TRUE
+            AND wp.location_updated_at > NOW() - INTERVAL '15 minutes'
+            AND wp.latitude IS NOT NULL AND wp.longitude IS NOT NULL
+            AND 6371 * 2 * ASIN(SQRT(
+              POWER(SIN(RADIANS(wp.latitude - worker_job_dispatches.latitude) / 2), 2) +
+              COS(RADIANS(worker_job_dispatches.latitude)) * COS(RADIANS(wp.latitude)) *
+              POWER(SIN(RADIANS(wp.longitude - worker_job_dispatches.longitude) / 2), 2)
+            )) <= 0.5
+        )
+      )
+    RETURNING id, customer_task_id AS "customerTaskId",customer_id,title,status
+    `, [jobId, worker.rows[0].id, nextStatus, allowedPrevious]);
+    const updated = result.rows[0] || null;
+    if (updated) {
+      if (nextStatus === 'started') {
+        await client.query(`
+        INSERT INTO marketplace_time_segments(
+          job_id,segment_type,reason,created_by_type,created_by_id,idempotency_key
+        ) SELECT $1,'working','Work started','worker',$2,gen_random_uuid()
+        WHERE NOT EXISTS(
+          SELECT 1 FROM marketplace_time_segments WHERE job_id=$1 AND ended_at IS NULL
+        )
+        `, [jobId, worker.rows[0].id]);
+      } else if (nextStatus === 'completion_requested') {
+        await client.query(
+        'UPDATE marketplace_time_segments SET ended_at=COALESCE(ended_at,NOW()) WHERE job_id=$1 AND ended_at IS NULL',
+        [jobId]
+        );
+      }
+      await appendEvent(client, {
+      jobId,
+      eventType: ({
+        arrived: 'worker_arrived',
+        started: 'job_started',
+        completion_requested: 'completion_requested',
+        completed: 'job_completed',
+      })[nextStatus] || `job_${nextStatus}`,
+      actorType: 'worker',
+      actorId: worker.rows[0].id,
+      });
+      const notificationType = ({
+      arrived: 'job.worker_arrived',
+      started: 'job.started',
+      completion_requested: 'job.completion_requested',
+      completed: 'job.completed',
+      })[nextStatus];
+      if (notificationType) {
+        const recipients = [{ type: 'customer', id: updated.customer_id }];
+        if (nextStatus === 'completed') recipients.push({ type: 'worker', id: worker.rows[0].id });
+        await enqueueNotificationEvent(client, {
+        eventId: eventId(notificationType, jobId, nextStatus),
+        type: notificationType,
+        recipients,
+        data: {
+          jobId,
+          customerTaskId: updated.customerTaskId,
+          title: updated.title,
+        },
+        });
+      }
+    }
+    await client.query('COMMIT');
+    return updated;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function getWorkerDashboard(pool, phone, limit = 50) {
@@ -948,27 +1279,36 @@ async function getWorkerDashboard(pool, phone, limit = 50) {
   const [summary, history] = await Promise.all([
     pool.query(`
       SELECT
-        COALESCE(SUM(budget) FILTER (
-          WHERE completed_at >= date_trunc('day', NOW() AT TIME ZONE 'Asia/Kolkata')
+        COALESCE(SUM(
+          COALESCE(earning.payable, CASE WHEN payment.id IS NULL THEN dispatch.budget ELSE 0 END)
+        ) FILTER (
+          WHERE dispatch.completed_at >= date_trunc('day', NOW() AT TIME ZONE 'Asia/Kolkata')
             AT TIME ZONE 'Asia/Kolkata'
         ), 0)::int AS "earningsToday",
-        COALESCE(SUM(budget), 0)::int AS "totalEarnings",
+        COALESCE(SUM(
+          COALESCE(earning.payable, CASE WHEN payment.id IS NULL THEN dispatch.budget ELSE 0 END)
+        ), 0)::int AS "totalEarnings",
         COUNT(*)::int AS "completedJobs"
-      FROM worker_job_dispatches
-      WHERE accepted_worker_id = $1 AND status = 'completed'
+      FROM worker_job_dispatches dispatch
+      LEFT JOIN marketplace_payments payment ON payment.job_id=dispatch.id
+      LEFT JOIN marketplace_worker_earnings earning ON earning.job_id=dispatch.id
+      WHERE dispatch.accepted_worker_id = $1 AND dispatch.status = 'completed'
     `, [workerId]),
     pool.query(`
-      SELECT id,
-        customer_task_id AS "customerTaskId",
-        category AS "workType",
-        address_text AS "customerArea",
-        budget,
-        status,
-        created_at AS "createdAt",
-        completed_at AS "completedAt"
-      FROM worker_job_dispatches
-      WHERE accepted_worker_id = $1 AND status = 'completed'
-      ORDER BY completed_at DESC NULLS LAST, created_at DESC
+      SELECT dispatch.id,
+        dispatch.customer_task_id AS "customerTaskId",
+        dispatch.category AS "workType",
+        dispatch.address_text AS "customerArea",
+        COALESCE(earning.payable,
+          CASE WHEN payment.id IS NULL THEN dispatch.budget ELSE 0 END) AS budget,
+        dispatch.status,
+        dispatch.created_at AS "createdAt",
+        dispatch.completed_at AS "completedAt"
+      FROM worker_job_dispatches dispatch
+      LEFT JOIN marketplace_payments payment ON payment.job_id=dispatch.id
+      LEFT JOIN marketplace_worker_earnings earning ON earning.job_id=dispatch.id
+      WHERE dispatch.accepted_worker_id = $1 AND dispatch.status = 'completed'
+      ORDER BY dispatch.completed_at DESC NULLS LAST, dispatch.created_at DESC
       LIMIT $2
     `, [workerId, limit]),
   ]);
@@ -1009,4 +1349,5 @@ module.exports = {
   cancelAndRematchJob,
   MAX_REPLACEMENT_ATTEMPTS,
   buildJobCancellationMessage,
+  normalizedWorkerCategories,
 };

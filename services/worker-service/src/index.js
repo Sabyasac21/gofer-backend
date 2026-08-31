@@ -18,7 +18,9 @@ const {
   validateDocumentStorageConfiguration,
 } = require('./services/documentStorage');
 const {
+  ensureWorkerDeletionSchema,
   permanentlyDeleteWorker,
+  phoneResetHash,
   WorkerDeletionError,
 } = require('./services/workerDeletion');
 const {
@@ -56,6 +58,30 @@ const {
   getWorkerAvailability,
   summarizeAvailability,
 } = require('./services/workerAvailability');
+const {
+  authenticateCustomer,
+  customerJob,
+  ensureMarketplaceSchema,
+} = require('./services/marketplaceTransaction');
+const { createMarketplaceRouter } = require('./routes/marketplace.routes');
+const {
+  buildEffectivePricingConfig,
+  ensurePricingAdminSchema,
+  createCatalogService,
+  getEffectivePublicPriceBook,
+  listAdminPricingServices,
+  savePricingVersion,
+} = require('../../../shared/pricing/pricingRepository');
+const {
+  calculateEstimate,
+  PricingError,
+} = require('../../../shared/pricing/workidaPricing');
+const {
+  eventId,
+  enqueueNotificationEvent,
+  ensureNotificationOutbox,
+  startNotificationOutboxPublisher,
+} = require('../../../shared/notifications/outbox');
 
 const app = express();
 app.use(helmet());
@@ -215,17 +241,53 @@ app.post('/api/jobs/dispatch', async (req, res, next) => {
   try {
     const { error, value } = Joi.object({
       customerTaskId: Joi.string().max(120).required(),
+      customerId: Joi.string().uuid().required(),
       serviceType: Joi.string().valid('helper', 'professional').required(),
       category: Joi.string().trim().max(120).required(),
+      serviceId: Joi.string().trim().max(120).allow('', null),
+      capabilityKey: Joi.string().trim().max(120).allow('', null),
+      eligibleWorkerCategories: Joi.array().items(Joi.string().trim().max(120)).max(20).default([]),
       title: Joi.string().trim().max(160).required(),
       notes: Joi.string().allow('', null).max(1000),
       address: Joi.string().trim().max(500).required(),
       latitude: Joi.number().min(-90).max(90).required(),
       longitude: Joi.number().min(-180).max(180).required(),
       budget: Joi.number().integer().min(1).max(1000000).required(),
+      durationLabel: Joi.string().trim().max(80).allow('', null),
+      estimatedDurationMinutes: Joi.number().integer().min(10).max(24 * 60).allow(null),
+      scope: Joi.array()
+        .items(Joi.string().trim().min(1).max(1000))
+        .max(50),
     }).validate(req.body, { stripUnknown: true });
     if (error) return res.status(400).json({ success: false, message: error.message });
-    const dispatch = await dispatchJob(pool, value);
+    const token = (req.get('authorization') || '').replace(/^Bearer\s+/, '');
+    if (!await authenticateCustomer(pool, value.customerId, token)) {
+      return res.status(401).json({ success: false, message: 'Invalid customer session' });
+    }
+    const task = await pool.query(
+      `SELECT budget,service_type,service_id,capability_key,
+              eligible_worker_categories,estimated_duration_minutes,
+              pricing_snapshot,scheduled_at
+       FROM gofer_customer_tasks WHERE id=$1 AND customer_id=$2`,
+      [value.customerTaskId, value.customerId]
+    );
+    if (!task.rowCount) {
+      return res.status(404).json({ success: false, message: 'Customer task not found' });
+    }
+    const authoritativeTask = task.rows[0];
+    const dispatch = await dispatchJob(pool, {
+      ...value,
+      budget: authoritativeTask.budget,
+      serviceType: authoritativeTask.service_type || value.serviceType,
+      serviceId: authoritativeTask.service_id || value.serviceId,
+      capabilityKey: authoritativeTask.capability_key || value.capabilityKey,
+      eligibleWorkerCategories: authoritativeTask.eligible_worker_categories
+        || value.eligibleWorkerCategories,
+      estimatedDurationMinutes: authoritativeTask.estimated_duration_minutes
+        || value.estimatedDurationMinutes,
+      pricingSnapshot: authoritativeTask.pricing_snapshot,
+      scheduledAt: authoritativeTask.scheduled_at,
+    });
     res.status(201).json({ success: true, dispatch });
   } catch (error) { next(error); }
 });
@@ -286,6 +348,14 @@ app.get('/api/jobs/customer-task/:customerTaskId', async (req, res, next) => {
       customerTaskId: Joi.string().uuid().required(),
     }).validate(req.params, { stripUnknown: true });
     if (error) return res.status(400).json({ success: false, message: error.message });
+    const customerId = req.get('x-customer-id');
+    const token = (req.get('authorization') || '').replace(/^Bearer\s+/, '');
+    if (!await authenticateCustomer(pool, customerId, token)) {
+      return res.status(401).json({ success: false, message: 'Invalid customer session' });
+    }
+    if (!await customerJob(pool, value.customerTaskId, customerId)) {
+      return res.status(404).json({ success: false, message: 'Dispatch not found' });
+    }
     const dispatch = await getDispatchStatus(pool, value.customerTaskId);
     if (!dispatch) return res.status(404).json({ success: false, message: 'Dispatch not found' });
     res.json({ success: true, dispatch });
@@ -297,11 +367,19 @@ app.patch('/api/jobs/customer-task/:customerTaskId/status', async (req, res, nex
     const params = Joi.object({ customerTaskId: Joi.string().uuid().required() })
       .validate(req.params, { stripUnknown: true });
     const body = Joi.object({
-      status: Joi.string().valid('started', 'completed', 'cancelled').required(),
+      status: Joi.string().valid('started', 'cancelled').required(),
     })
       .validate(req.body, { stripUnknown: true });
     if (params.error || body.error) {
       return res.status(400).json({ success: false, message: (params.error || body.error).message });
+    }
+    const customerId = req.get('x-customer-id');
+    const token = (req.get('authorization') || '').replace(/^Bearer\s+/, '');
+    if (!await authenticateCustomer(pool, customerId, token)) {
+      return res.status(401).json({ success: false, message: 'Invalid customer session' });
+    }
+    if (!await customerJob(pool, params.value.customerTaskId, customerId)) {
+      return res.status(404).json({ success: false, message: 'Active dispatch not found' });
     }
     const job = await updateJobStatusByCustomerTask(
       pool, params.value.customerTaskId, body.value.status
@@ -377,9 +455,14 @@ app.get('/api/workers/enrollments/status', async (req, res, next) => {
     );
 
     if (result.rowCount === 0) {
+      const reset = await pool.query(
+        'SELECT 1 FROM worker_enrollment_resets WHERE phone_hash = $1',
+        [phoneResetHash(value.phone)],
+      );
       return res.json({
         success: true,
-        exists: false
+        exists: false,
+        resetRequired: reset.rowCount > 0,
       });
     }
 
@@ -416,6 +499,11 @@ app.post('/api/workers/verification/verify-otp', async (req, res, next) => {
         message: 'The verified phone number does not match the requested number',
       });
     }
+
+    await pool.query(
+      'DELETE FROM worker_enrollment_resets WHERE phone_hash = $1',
+      [phoneResetHash(normalizedPhone)],
+    );
 
     const enrollmentResult = await pool.query(
       `
@@ -499,6 +587,166 @@ function requireAdmin(req, res) {
   }
   return req.get('x-admin-id') || 'local-admin';
 }
+
+const adminPricingSchema = Joi.object({
+  pricingModel: Joi.string()
+    .valid('hourly', 'fixed', 'inspection', 'quote', 'perUnit', 'tiered')
+    .required(),
+  basePriceMinor: Joi.number().integer().min(0).max(100000000).required(),
+  includedDurationMinutes: Joi.number().integer().min(0).max(240).required(),
+  hourlyRateMinor: Joi.number().integer().min(0).max(100000000).required(),
+  billingIncrementMinutes: Joi.number()
+    .integer()
+    .valid(1, 5, 10, 15, 30, 60)
+    .required(),
+  visitFeeMinor: Joi.number().integer().min(0).max(100000000).required(),
+  estimatedDurationMinMinutes: Joi.number().integer().min(10).max(1440).required(),
+  estimatedDurationMaxMinutes: Joi.number().integer().min(10).max(1440).required(),
+  active: Joi.boolean().required(),
+  includedScope: Joi.array()
+    .items(Joi.string().trim().min(1).max(240))
+    .max(20)
+    .unique((left, right) => left.toLowerCase() === right.toLowerCase())
+    .required(),
+  exclusions: Joi.array()
+    .items(Joi.string().trim().min(1).max(240))
+    .max(20)
+    .unique((left, right) => left.toLowerCase() === right.toLowerCase())
+    .required(),
+  variants: Joi.array().items(Joi.object({
+    variantId: Joi.string().trim().max(120).required(),
+    name: Joi.string().trim().min(2).max(160).required(),
+    customerPriceMinor: Joi.number().integer().min(1).max(100000000).required(),
+    durationMinMinutes: Joi.number().integer().min(10).max(1440).required(),
+    durationMaxMinutes: Joi.number().integer().min(10).max(1440).required(),
+  })).max(50).required(),
+});
+
+app.get('/api/pricing/catalog', async (_req, res, next) => {
+  try {
+    return res.json({
+      success: true,
+      priceBook: await getEffectivePublicPriceBook(pool),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post('/api/pricing/quotes', async (req, res, next) => {
+  try {
+    const schema = Joi.object({
+      serviceId: Joi.string().trim().max(120).required(),
+      serviceType: Joi.string().valid('helper', 'professional').required(),
+      capabilityKey: Joi.string().trim().max(120).allow('', null),
+      category: Joi.string().trim().max(120).allow('', null),
+      variantId: Joi.string().trim().max(120).allow('', null),
+      city: Joi.string().trim().max(80).default('bengaluru'),
+      quantity: Joi.number().integer().min(1).max(100).default(1),
+      estimatedDurationMinutes: Joi.number().integer().min(10).max(24 * 60),
+    });
+    const { error, value } = schema.validate(req.body || {}, {
+      stripUnknown: true,
+    });
+    if (error) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    const pricingConfig = await buildEffectivePricingConfig(pool, value);
+    const estimate = calculateEstimate(
+      pricingConfig,
+      value.estimatedDurationMinutes
+        ?? pricingConfig.estimatedDurationMinMinutes,
+    );
+    return res.json({ success: true, quote: { pricingConfig, estimate } });
+  } catch (error) {
+    if (error instanceof PricingError) {
+      return res.status(422).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+      });
+    }
+    return next(error);
+  }
+});
+
+app.get('/api/admin/pricing/services', async (req, res, next) => {
+  try {
+    if (!requireAdmin(req, res)) return;
+    const services = await listAdminPricingServices(pool);
+    res.json({ success: true, services, total: services.length });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const createCatalogServiceSchema = Joi.object({
+  sourceServiceId: Joi.string().trim().max(120).required(),
+  serviceId: Joi.string().trim().lowercase()
+    .pattern(/^[a-z][a-z0-9_]{2,119}$/)
+    .required(),
+  serviceName: Joi.string().trim().min(3).max(100).required(),
+  shortDescription: Joi.string().trim().min(10).max(240).required(),
+});
+
+app.post('/api/admin/pricing/services', async (req, res, next) => {
+  try {
+    const adminId = requireAdmin(req, res);
+    if (!adminId) return;
+    const { error, value } = createCatalogServiceSchema.validate(req.body || {}, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid service details.',
+        errors: error.details.map((detail) => detail.message),
+      });
+    }
+    const service = await createCatalogService(pool, { ...value, adminId });
+    return res.status(201).json({ success: true, service });
+  } catch (error) {
+    if (error instanceof PricingError) {
+      return res.status(422).json({ success: false, code: error.code, message: error.message });
+    }
+    return next(error);
+  }
+});
+
+app.put('/api/admin/pricing/services/:serviceId', async (req, res, next) => {
+  try {
+    const adminId = requireAdmin(req, res);
+    if (!adminId) return;
+    const { error, value } = adminPricingSchema.validate(req.body || {}, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pricing configuration.',
+        errors: error.details.map((detail) => detail.message),
+      });
+    }
+
+    const service = await savePricingVersion(pool, {
+      serviceId: req.params.serviceId,
+      adminId,
+      value,
+    });
+    return res.json({ success: true, service });
+  } catch (error) {
+    if (error instanceof PricingError) {
+      return res.status(422).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+      });
+    }
+    return next(error);
+  }
+});
 
 function consentTextForVersion(version) {
   return `Workida worker verification consent ${version}: I allow Workida to verify my identity, documents, selfie, background, and eligibility through internal review and third-party verification providers for customer safety.`;
@@ -1293,6 +1541,12 @@ app.post('/api/admin/workers/:id/approve', async (req, res, next) => {
         }),
       ]
     );
+    await enqueueNotificationEvent(client, {
+      eventId: eventId('worker.verification_updated', req.params.id, 'approved'),
+      type: 'worker.verification_updated',
+      recipients: [{ type: 'worker', id: req.params.id }],
+      data: { approved: true },
+    });
 
     await client.query('COMMIT');
     return res.json({ success: true, worker: workerUpdate.rows[0] });
@@ -1433,6 +1687,15 @@ app.post('/api/admin/workers/:id/kyc/simulate', async (req, res, next) => {
         }),
       ]
     );
+    await enqueueNotificationEvent(client, {
+      eventId: eventId('worker.verification_updated', req.params.id, value.decision),
+      type: 'worker.verification_updated',
+      recipients: [{ type: 'worker', id: req.params.id }],
+      data: {
+        approved: value.decision === 'verified',
+        reason: value.reason,
+      },
+    });
 
     await client.query('COMMIT');
 
@@ -1453,6 +1716,7 @@ app.post('/api/admin/workers/:id/kyc/simulate', async (req, res, next) => {
 // ERROR HANDLER
 // ─────────────────────────────────────────────────────────
 
+app.use('/api/marketplace', createMarketplaceRouter(pool));
 app.use(errorHandler);
 
 // ─────────────────────────────────────────────────────────
@@ -1466,7 +1730,12 @@ const startServer = async () => {
     const documentStorage = validateDocumentStorageConfiguration();
     await ensureDocumentSensitiveFieldsSchema(pool);
     await ensureDispatchSchema(pool);
+    await ensureMarketplaceSchema(pool);
+    await ensurePricingAdminSchema(pool);
+    await ensureWorkerDeletionSchema(pool);
+    await ensureNotificationOutbox(pool);
     initializeMessaging(logger);
+    startNotificationOutboxPublisher(pool, { logger });
     app.listen(PORT, () => {
       logger.info(`Worker Service running on port ${PORT}`);
       logger.info(`Worker document storage: ${documentStorage.provider}`);

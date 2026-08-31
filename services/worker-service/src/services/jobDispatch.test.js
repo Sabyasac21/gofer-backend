@@ -8,12 +8,85 @@ const {
 const { getPendingWorkerJob } = require('./pendingJob');
 const {
   cancelAndRematchJob,
+  dispatchJob,
   MAX_REPLACEMENT_ATTEMPTS,
   updatePresence,
   getWorkerDashboard,
   updateJobStatusByCustomerTask,
   buildJobCancellationMessage,
+  normalizedWorkerCategories,
 } = require('./jobDispatch');
+const { buildPricingConfig } = require('../../../../shared/pricing/workidaPricing');
+
+test('canonical capability controls the eligible worker profession pool', () => {
+  assert.deepEqual(normalizedWorkerCategories({
+    capabilityKey: 'refrigerator_repair',
+    category: 'TV Repair',
+    eligibleWorkerCategories: ['TV Repair Technician'],
+  }), ['Fridge Repair Technician', 'Appliance Repair Technician']);
+  assert.deepEqual(normalizedWorkerCategories({
+    capabilityKey: 'tv_repair',
+    category: 'Electrical',
+    eligibleWorkerCategories: ['Electrician'],
+  }), ['TV Repair Technician']);
+});
+
+test('dispatch persists and prices the server-authoritative booking snapshot', async () => {
+  const snapshot = buildPricingConfig({
+    serviceId: 'ac_installation',
+    serviceType: 'professional',
+    variantId: 'split',
+    city: 'bengaluru',
+  });
+  let dispatchInsertValues;
+  const client = {
+    async query(sql, values) {
+      if (sql === 'BEGIN' || sql === 'COMMIT') return { rowCount: 0, rows: [] };
+      if (sql.includes('WITH candidate_pool')) {
+        return { rowCount: 1, rows: [{ eligible: 0 }] };
+      }
+      if (sql.includes('SELECT id, status') && sql.includes('FOR UPDATE')) {
+        return { rowCount: 0, rows: [] };
+      }
+      if (sql.includes('INSERT INTO worker_job_dispatches')) {
+        dispatchInsertValues = values;
+        return {
+          rowCount: 1,
+          rows: [{ id: 'job-1', expires_at: '2026-08-23T12:00:00.000Z' }],
+        };
+      }
+      if (sql.includes('FROM worker_enrollments we')) {
+        return { rowCount: 0, rows: [] };
+      }
+      return { rowCount: 1, rows: [{}] };
+    },
+    release() {},
+  };
+  const result = await dispatchJob({ connect: async () => client }, {
+    customerTaskId: 'task-1',
+    customerId: '00000000-0000-4000-8000-000000000001',
+    serviceType: 'professional',
+    category: 'AC Service & Repair',
+    serviceId: 'ac_installation',
+    capabilityKey: 'ac_installation',
+    eligibleWorkerCategories: ['AC Technician'],
+    title: 'Split AC installation',
+    notes: '',
+    address: 'Bengaluru',
+    latitude: 12.9716,
+    longitude: 77.5946,
+    budget: 1,
+    durationLabel: '2 hours',
+    estimatedDurationMinutes: 120,
+    pricingSnapshot: snapshot,
+    scheduledAt: '2026-08-24T04:30:00.000Z',
+  });
+
+  assert.equal(result.id, 'job-1');
+  assert.equal(dispatchInsertValues[9], 2099);
+  assert.deepEqual(JSON.parse(dispatchInsertValues[16]), snapshot);
+  assert.equal(dispatchInsertValues[17], '2026-08-24T04:30:00.000Z');
+});
 
 test('worker dashboard restores authoritative earnings and completed history',
     async () => {
@@ -54,7 +127,8 @@ test('worker dashboard restores authoritative earnings and completed history',
   assert.equal(dashboard.completedJobs, 3);
   assert.equal(dashboard.history.length, 1);
   assert.match(calls[1].sql, /Asia\/Kolkata/);
-  assert.match(calls[2].sql, /status = 'completed'/);
+  assert.match(calls[2].sql, /dispatch\.status = 'completed'/);
+  assert.match(calls[1].sql, /marketplace_worker_earnings/);
   assert.deepEqual(calls[2].values, ['worker-1', 20]);
 });
 

@@ -23,7 +23,8 @@ async function getPendingWorkerJob(pool, phone) {
           POWER(SIN(RADIANS(wp.longitude - d.longitude) / 2), 2)
         )))::numeric, 1)::double precision
       END AS "distanceKm",
-      'New request' AS "durationLabel",
+      COALESCE(d.duration_label, 'New request') AS "durationLabel",
+      d.scheduled_at AS "scheduledAt",
       d.budget AS "payMin",
       d.budget AS "payMax",
       COALESCE(d.notes, '') AS notes,

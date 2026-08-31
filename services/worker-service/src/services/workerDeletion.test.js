@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   permanentlyDeleteWorker,
+  phoneResetHash,
   WorkerDeletionError,
 } = require('./workerDeletion');
 
@@ -57,6 +58,10 @@ test('permanently deletes a confirmed worker and records a non-PII audit summary
   assert.equal(summary.detachedJobs, 1);
   assert.equal(storageInput.enrollmentId, workerId);
   assert.equal(storageInput.documents.length, 1);
+  const resetCall = client.calls.find((call) => call.sql.startsWith('INSERT INTO worker_enrollment_resets'));
+  assert.ok(resetCall);
+  assert.equal(resetCall.params[0], phoneResetHash('9876543210'));
+  assert.doesNotMatch(resetCall.params[0], /9876543210/);
   assert.ok(client.calls.some((call) => call.sql === 'COMMIT'));
   assert.ok(!client.calls.some((call) => call.sql === 'ROLLBACK'));
   const auditCall = client.calls.find((call) => call.sql.startsWith('INSERT INTO admin_audit_logs'));

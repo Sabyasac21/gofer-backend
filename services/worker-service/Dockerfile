@@ -10,6 +10,7 @@ COPY services/worker-service/src ./services/worker-service/src
 COPY services/worker-service/scripts ./services/worker-service/scripts
 COPY services/worker-service/package.json ./services/worker-service/package.json
 COPY shared ./shared
+COPY flutter_app/assets/config/workida-price-book.json ./flutter_app/assets/config/workida-price-book.json
 
 WORKDIR /app/services/worker-service
 
