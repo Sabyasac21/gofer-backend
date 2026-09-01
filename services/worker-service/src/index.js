@@ -65,6 +65,10 @@ const {
 } = require('./services/marketplaceTransaction');
 const { createMarketplaceRouter } = require('./routes/marketplace.routes');
 const {
+  createCustomerRouter,
+  ensureCustomerSchema,
+} = require('./routes/customer.routes');
+const {
   buildEffectivePricingConfig,
   ensurePricingAdminSchema,
   createCatalogService,
@@ -1716,6 +1720,7 @@ app.post('/api/admin/workers/:id/kyc/simulate', async (req, res, next) => {
 // ERROR HANDLER
 // ─────────────────────────────────────────────────────────
 
+app.use('/api', createCustomerRouter(pool));
 app.use('/api/marketplace', createMarketplaceRouter(pool));
 app.use(errorHandler);
 
@@ -1729,6 +1734,7 @@ const startServer = async () => {
   try {
     const documentStorage = validateDocumentStorageConfiguration();
     await ensureDocumentSensitiveFieldsSchema(pool);
+    await ensureCustomerSchema(pool);
     await ensureDispatchSchema(pool);
     await ensureMarketplaceSchema(pool);
     await ensurePricingAdminSchema(pool);
