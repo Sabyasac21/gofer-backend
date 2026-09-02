@@ -5,6 +5,15 @@ const path = require('path');
 
 const PRICE_BOOK_PATH = path.resolve(__dirname, '../../flutter_app/assets/config/workida-price-book.json');
 
+const PRICING_MODEL_ALIASES = Object.freeze({
+  per_unit: 'perUnit',
+  time_based: 'hourly',
+});
+
+function canonicalPricingModel(value) {
+  return PRICING_MODEL_ALIASES[value] || value;
+}
+
 class PricingError extends Error {
   constructor(message, code = 'PRICING_ERROR') {
     super(message);
@@ -43,7 +52,8 @@ function validatePriceBook(book) {
     if (service.estimatedDurationMinMinutes <= 0 || service.estimatedDurationMaxMinutes < service.estimatedDurationMinMinutes) {
       throw new PricingError(`Invalid duration for ${service.serviceId}.`, 'PRICE_BOOK_INVALID');
     }
-    const inspection = ['inspection', 'quote'].includes(service.pricingModel);
+    const pricingModel = canonicalPricingModel(service.pricingModel);
+    const inspection = ['inspection', 'quote'].includes(pricingModel);
     if (inspection && (service.customerPriceMinor !== 0 || service.visitFeeMinor <= 0)) {
       throw new PricingError(`${service.serviceId} must store an inspection charge only as visitFeeMinor.`, 'PRICE_BOOK_DOUBLE_CHARGE');
     }
@@ -68,7 +78,10 @@ function validatePriceBook(book) {
 
 const PRICE_BOOK = readPriceBook();
 const VERSION = PRICE_BOOK.version;
-const SERVICE_INDEX = new Map(PRICE_BOOK.services.map((service) => [service.serviceId, service]));
+const SERVICE_INDEX = new Map(PRICE_BOOK.services.map((service) => [
+  service.serviceId,
+  { ...service, pricingModel: canonicalPricingModel(service.pricingModel) },
+]));
 
 function money(minorUnits, currency = 'INR') {
   assertInteger(minorUnits, 'minorUnits');
@@ -76,16 +89,17 @@ function money(minorUnits, currency = 'INR') {
 }
 
 function publicService(service) {
+  const pricingModel = canonicalPricingModel(service.pricingModel);
   return {
     serviceId: service.serviceId,
     serviceName: service.serviceName,
-    pricingModel: service.pricingModel,
+    pricingModel,
     unit: service.unit,
     basePriceMinor: service.basePriceMinor ?? service.customerPriceMinor,
     includedDurationMinutes: service.includedDurationMinutes
-      ?? (service.pricingModel === 'hourly' ? 60 : 0),
+      ?? (pricingModel === 'hourly' ? 30 : 0),
     hourlyRateMinor: service.hourlyRateMinor
-      ?? (service.pricingModel === 'hourly' ? service.customerPriceMinor : 0),
+      ?? (pricingModel === 'hourly' ? service.customerPriceMinor : 0),
     billingIncrementMinutes: service.billingIncrementMinutes ?? 15,
     displayPriceMinor: service.displayPriceMinor,
     visitFeeMinor: service.visitFeeMinor,
@@ -118,16 +132,24 @@ function getPublicPriceBook() {
 }
 
 function getBaseServices() {
-  return PRICE_BOOK.services.map((service) => ({ ...service }));
+  return PRICE_BOOK.services.map((service) => ({
+    ...service,
+    pricingModel: canonicalPricingModel(service.pricingModel),
+  }));
 }
 
 function buildPricingConfig({ serviceId, serviceType, capabilityKey, category, variantId, city = PRICE_BOOK.defaultCity, quantity = 1 }, serviceOverride = null) {
   if (!serviceId) throw new PricingError('A service ID is required for pricing.', 'PRICING_CONFIG_MISSING');
   const storedService = SERVICE_INDEX.get(serviceId) || serviceOverride;
   if (!storedService) throw new PricingError(`No active price exists for ${serviceId}.`, 'PRICING_CONFIG_MISSING');
-  const service = serviceOverride
-    ? { ...storedService, ...serviceOverride, serviceId }
-    : storedService;
+  const service = {
+    ...(serviceOverride
+      ? { ...storedService, ...serviceOverride, serviceId }
+      : storedService),
+    pricingModel: canonicalPricingModel(
+      serviceOverride?.pricingModel ?? storedService.pricingModel,
+    ),
+  };
   if (service.active === false) {
     throw new PricingError(`Pricing is disabled for ${serviceId}.`, 'PRICING_CONFIG_INACTIVE');
   }
@@ -141,11 +163,14 @@ function buildPricingConfig({ serviceId, serviceType, capabilityKey, category, v
     : selectVariant(service, variantId);
   const customerBase = variant?.customerPriceMinor ?? service.customerPriceMinor;
   const workerBase = variant?.workerPayoutMinor ?? service.workerBasePayoutMinor;
-  const durationMin = variant?.durationMinMinutes ?? service.estimatedDurationMinMinutes;
-  const durationMax = variant?.durationMaxMinutes ?? service.estimatedDurationMaxMinutes;
   const inspection = ['inspection', 'quote'].includes(service.pricingModel);
   const hourly = service.pricingModel === 'hourly';
   const multiplierQuantity = hourly || inspection || service.pricingModel === 'tiered' ? 1 : quantity;
+  const durationQuantity = service.pricingModel === 'perUnit' ? quantity : 1;
+  const durationMin = (variant?.durationMinMinutes
+    ?? service.estimatedDurationMinMinutes) * durationQuantity;
+  const durationMax = (variant?.durationMaxMinutes
+    ?? service.estimatedDurationMaxMinutes) * durationQuantity;
   const configuredBase = hourly
     ? (service.basePriceMinor ?? customerBase)
     : customerBase * multiplierQuantity;
@@ -380,4 +405,4 @@ const PAINTING_IDS = new Set(['room_painting', 'full_home_painting', 'ceiling_pa
 const AC_IDS = new Set(['ac_diagnosis', 'ac_service_cleaning', 'ac_installation', 'ac_gas_cooling_issue', 'cooler_repair']);
 const ELECTRICAL_IDS = new Set(['switch_socket_wiring_repair', 'mcb_fuse_repair', 'doorbell_repair', 'voltage_power_issues', 'fan_installation_repair', 'lighting_installation', 'decorative_light_installation', 'fan_regulator_capacitor', 'outdoor_sensor_light']);
 
-module.exports = { PRICE_BOOK_PATH, PricingError, VERSION, buildPricingConfig, calculateCancellation, calculateEstimate, calculateFinal, getBaseServices, getPublicPriceBook, money, prorated, publicService, validatePriceBook };
+module.exports = { PRICE_BOOK_PATH, PricingError, VERSION, buildPricingConfig, calculateCancellation, calculateEstimate, calculateFinal, canonicalPricingModel, getBaseServices, getPublicPriceBook, money, prorated, publicService, validatePriceBook };

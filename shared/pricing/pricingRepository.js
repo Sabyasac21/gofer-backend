@@ -4,6 +4,7 @@ const {
   VERSION,
   PricingError,
   buildPricingConfig,
+  canonicalPricingModel,
   getBaseServices,
   getPublicPriceBook,
   publicService,
@@ -17,6 +18,23 @@ const PRICING_MODELS = new Set([
   'perUnit',
   'tiered',
 ]);
+
+function pricingPresentation(pricingModel, variants = []) {
+  const model = canonicalPricingModel(pricingModel);
+  if (model === 'hourly') {
+    return { billingMode: 'timeBased', fixedPriceKind: 'service' };
+  }
+  if ((variants || []).length > 0 || model === 'tiered') {
+    return { billingMode: 'fixed', fixedPriceKind: 'options' };
+  }
+  if (['inspection', 'quote'].includes(model)) {
+    return { billingMode: 'fixed', fixedPriceKind: 'assessment' };
+  }
+  if (model === 'perUnit') {
+    return { billingMode: 'fixed', fixedPriceKind: 'quantity' };
+  }
+  return { billingMode: 'fixed', fixedPriceKind: 'service' };
+}
 
 async function ensurePricingAdminSchema(pool) {
   await pool.query(`
@@ -118,13 +136,16 @@ async function allBaseServices(pool) {
 }
 
 function baseAdminService(service) {
-  const hourly = service.pricingModel === 'hourly';
-  const inspection = ['inspection', 'quote'].includes(service.pricingModel);
+  const pricingModel = canonicalPricingModel(service.pricingModel);
+  const hourly = pricingModel === 'hourly';
+  const inspection = ['inspection', 'quote'].includes(pricingModel);
+  const variants = service.variants || [];
   return {
     serviceId: service.serviceId,
     serviceName: service.serviceName,
     unit: service.unit,
-    pricingModel: service.pricingModel,
+    pricingModel,
+    ...pricingPresentation(pricingModel, variants),
     basePriceMinor: inspection
       ? 0
       : (service.basePriceMinor ?? service.customerPriceMinor),
@@ -149,7 +170,7 @@ function baseAdminService(service) {
     updatedAt: null,
     includedScope: service.includedScope || [],
     exclusions: service.exclusions || [],
-    variants: service.variants || [],
+    variants,
   };
 }
 
@@ -157,7 +178,7 @@ function rowToAdminService(row) {
   if (!row) return null;
   return {
     serviceId: row.service_id,
-    pricingModel: row.pricing_model,
+    pricingModel: canonicalPricingModel(row.pricing_model),
     basePriceMinor: row.base_price_minor,
     includedDurationMinutes: row.included_duration_minutes,
     hourlyRateMinor: row.hourly_rate_minor,
@@ -202,24 +223,26 @@ async function listAdminPricingServices(pool) {
     (await currentRows(pool)).map((row) => [row.service_id, rowToAdminService(row)]),
   );
   const dynamicIds = new Set((await dynamicBaseServices(pool)).map((service) => service.serviceId));
-  return (await allBaseServices(pool)).map((service) => ({
-    ...baseAdminService(service),
-    ...(overrides.get(service.serviceId) || {}),
-    serviceName: service.serviceName,
-    unit: service.unit,
-    includedScope: overrides.get(service.serviceId)?.includedScope
-      ?? service.includedScope ?? [],
-    exclusions: overrides.get(service.serviceId)?.exclusions
-      ?? service.exclusions ?? [],
-    variants: overrides.get(service.serviceId)?.variants
-      ?? service.variants ?? [],
-    pricingModel: (overrides.get(service.serviceId)?.variants
-      ?? service.variants ?? []).length > 0
+  return (await allBaseServices(pool)).map((service) => {
+    const override = overrides.get(service.serviceId);
+    const variants = override?.variants ?? service.variants ?? [];
+    const pricingModel = variants.length > 0
       ? 'tiered'
-      : (overrides.get(service.serviceId)?.pricingModel ?? service.pricingModel),
-    catalog: service.catalog,
-    adminCreated: dynamicIds.has(service.serviceId),
-  }));
+      : canonicalPricingModel(override?.pricingModel ?? service.pricingModel);
+    return {
+      ...baseAdminService(service),
+      ...(override || {}),
+      serviceName: service.serviceName,
+      unit: service.unit,
+      includedScope: override?.includedScope ?? service.includedScope ?? [],
+      exclusions: override?.exclusions ?? service.exclusions ?? [],
+      variants,
+      pricingModel,
+      ...pricingPresentation(pricingModel, variants),
+      catalog: service.catalog,
+      adminCreated: dynamicIds.has(service.serviceId),
+    };
+  });
 }
 
 async function getEffectiveServiceOverride(pool, serviceId) {
@@ -346,9 +369,10 @@ function validateAdminPricing(value, serviceId, baseServices = getBaseServices()
   }
   if (value.pricingModel === 'hourly') {
     if (value.basePriceMinor <= 0 || value.hourlyRateMinor <= 0
-        || value.includedDurationMinutes <= 0) {
+        || value.includedDurationMinutes !== 30
+        || value.estimatedDurationMinMinutes < 30) {
       throw new PricingError(
-        'Time-based services require a base price, included time and hourly rate.',
+        'Time-based services require a base price covering 30 minutes and an hourly rate.',
         'PRICING_ADMIN_INVALID',
       );
     }
@@ -533,7 +557,10 @@ function validateScopeLines(lines, label) {
 // visit fee on a now-fixed service) so the preview and the booking API cannot
 // disagree about the amount payable.
 function normalizeAdminPricing(value) {
-  const normalized = { ...value };
+  const normalized = {
+    ...value,
+    pricingModel: canonicalPricingModel(value.pricingModel),
+  };
   normalized.variants = Array.isArray(normalized.variants)
     ? normalized.variants.map((variant) => ({
       variantId: variant.variantId,
@@ -661,6 +688,10 @@ async function savePricingVersion(pool, { serviceId, adminId, value }) {
       ...rowToAdminService(inserted.rows[0]),
       serviceName: base.serviceName,
       unit: base.unit,
+      ...pricingPresentation(
+        inserted.rows[0].pricing_model,
+        normalizedValue.variants,
+      ),
     };
   } catch (error) {
     await client.query('ROLLBACK');
@@ -756,6 +787,7 @@ module.exports = {
   getEffectiveServiceOverride,
   listAdminPricingServices,
   normalizeAdminPricing,
+  pricingPresentation,
   savePricingVersion,
   validateAdminPricing,
 };

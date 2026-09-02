@@ -1254,13 +1254,13 @@ class _DurationAndEstimateCard extends StatelessWidget {
             Text(
               config.pricingModel == PricingModel.inspection ||
                       config.pricingModel == PricingModel.quote
-                  ? 'Inspection booking'
-                  : 'Fixed scope pricing',
+                  ? 'Fixed-price assessment'
+                  : 'Fixed price',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 6),
             Text(
-              'Expected visit: ${durationLabel(config.estimatedDurationMinMinutes)}'
+              'Estimated time: ${durationLabel(config.estimatedDurationMinMinutes)}'
               ' to ${durationLabel(config.estimatedDurationMaxMinutes)}',
             ),
             const SizedBox(height: 16),
@@ -1389,7 +1389,7 @@ class _PricingBreakdown extends StatelessWidget {
             _PriceLine(
               label: config.pricingModel == PricingModel.inspection ||
                       config.pricingModel == PricingModel.quote
-                  ? 'Inspection fee'
+                  ? 'Fixed assessment price'
                   : 'Visit fee',
               value: estimate.visitFee.formatted,
             ),
@@ -1425,7 +1425,7 @@ class _PricingBreakdown extends StatelessWidget {
           _PriceLine(
             label: config.pricingModel == PricingModel.inspection ||
                     config.pricingModel == PricingModel.quote
-                ? 'Payable for inspection'
+                ? 'Assessment total'
                 : 'Estimated total',
             value: estimate.estimatedTotal.formatted,
             emphasized: true,
@@ -1436,8 +1436,8 @@ class _PricingBreakdown extends StatelessWidget {
                 ? 'The base price includes the first ${durationLabel(config.includedDurationMinutes)}. Final labour uses verified working time, rounded to ${config.billingIncrementMinutes}-minute blocks. Additional time requires your approval.'
                 : config.pricingModel == PricingModel.inspection ||
                         config.pricingModel == PricingModel.quote
-                    ? 'Repair work and parts are quoted separately after inspection and require your approval.'
-                    : 'This price covers the selected scope. Any additional work requires your approval.',
+                    ? 'This fixed price covers the assessment visit. Repair work and parts are quoted separately and require your approval.'
+                    : 'This fixed price covers the selected scope and does not change with time. Any additional work requires your approval.',
             style: const TextStyle(
               color: Color(0xFF526361),
               fontSize: 12,

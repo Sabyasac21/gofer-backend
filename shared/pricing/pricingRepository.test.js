@@ -9,6 +9,7 @@ const {
   createCatalogService,
   listAdminPricingServices,
   normalizeAdminPricing,
+  pricingPresentation,
   validateAdminPricing,
 } = require('./pricingRepository');
 
@@ -37,6 +38,32 @@ test('admin accepts base plus hourly pricing with a 30 minute inclusion', () => 
     'household_help_session',
   );
   assert.equal(service.serviceId, 'household_help_session');
+});
+
+test('legacy catalogue models are normalized and presented as fixed pricing', async () => {
+  const pool = { query: async () => ({ rows: [] }) };
+  const services = await listAdminPricingServices(pool);
+  const bedroom = services.find((service) => service.serviceId === 'bedroom_cleaning');
+
+  assert.equal(bedroom.pricingModel, 'perUnit');
+  assert.equal(bedroom.billingMode, 'fixed');
+  assert.equal(bedroom.fixedPriceKind, 'quantity');
+  assert.deepEqual(pricingPresentation('time_based'), {
+    billingMode: 'timeBased',
+    fixedPriceKind: 'service',
+  });
+});
+
+test('legacy pricing names are canonicalized before validation and storage', () => {
+  const normalized = normalizeAdminPricing({
+    ...validHourly(),
+    pricingModel: 'time_based',
+  });
+  assert.equal(normalized.pricingModel, 'hourly');
+  assert.doesNotThrow(() => validateAdminPricing(
+    normalized,
+    'household_help_session',
+  ));
 });
 
 test('switching to fixed pricing removes stale inspection charges', () => {

@@ -141,7 +141,7 @@ class CustomerApiService {
 
   static const _configuredBaseUrl = String.fromEnvironment(
     'GOFER_TASK_API_BASE_URL',
-    defaultValue: '',
+    defaultValue: 'https://gofer-backend.onrender.com',
   );
   static const _configuredWorkerBaseUrl = String.fromEnvironment(
     'GOFER_WORKER_API_BASE_URL',

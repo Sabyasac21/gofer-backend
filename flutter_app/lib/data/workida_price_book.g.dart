@@ -19,11 +19,15 @@ class CityPriceAdjustment {
 }
 
 class PriceBookEntry {
-  const PriceBookEntry({required this.serviceId, required this.model, required this.unit, required this.customerPriceMinor, required this.visitFeeMinor, required this.workerBasePayoutMinor, required this.workerVisitPayoutMinor, required this.minimumOrderMinor, required this.workerOvertimeRateMinor, required this.durationMinMinutes, required this.durationMaxMinutes, required this.inspectionFeeAbsorbed, required this.absorptionThresholdMinor, required this.cityAdjustments, required this.includedScope, required this.exclusions, this.variants = const []});
+  const PriceBookEntry({required this.serviceId, required this.model, required this.unit, required this.customerPriceMinor, required this.basePriceMinor, required this.includedDurationMinutes, required this.hourlyRateMinor, required this.billingIncrementMinutes, required this.visitFeeMinor, required this.workerBasePayoutMinor, required this.workerVisitPayoutMinor, required this.minimumOrderMinor, required this.workerOvertimeRateMinor, required this.durationMinMinutes, required this.durationMaxMinutes, required this.inspectionFeeAbsorbed, required this.absorptionThresholdMinor, required this.cityAdjustments, required this.includedScope, required this.exclusions, this.variants = const []});
   final String serviceId;
   final PriceBookPricingModel model;
   final String unit;
   final int customerPriceMinor;
+  final int basePriceMinor;
+  final int includedDurationMinutes;
+  final int hourlyRateMinor;
+  final int billingIncrementMinutes;
   final int visitFeeMinor;
   final int workerBasePayoutMinor;
   final int workerVisitPayoutMinor;
@@ -46,7 +50,7 @@ class WorkidaPriceBookData {
   static const entries = <String, PriceBookEntry>{
     'ac_diagnosis': PriceBookEntry(
       serviceId: 'ac_diagnosis', model: PriceBookPricingModel.inspection, unit: 'AC',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected ac repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -54,7 +58,7 @@ class WorkidaPriceBookData {
     ),
     'ac_gas_cooling_issue': PriceBookEntry(
       serviceId: 'ac_gas_cooling_issue', model: PriceBookPricingModel.inspection, unit: 'AC',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected ac gas / cooling issue issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -62,7 +66,7 @@ class WorkidaPriceBookData {
     ),
     'ac_installation': PriceBookEntry(
       serviceId: 'ac_installation', model: PriceBookPricingModel.tiered, unit: 'AC',
-      customerPriceMinor: 159900, visitFeeMinor: 0, workerBasePayoutMinor: 110000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 159900, basePriceMinor: 159900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 110000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 90, durationMaxMinutes: 150, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected ac installation', 'Basic operational and safety check after installation'],
@@ -74,7 +78,7 @@ class WorkidaPriceBookData {
     ),
     'ac_service_cleaning': PriceBookEntry(
       serviceId: 'ac_service_cleaning', model: PriceBookPricingModel.perUnit, unit: 'AC',
-      customerPriceMinor: 59900, visitFeeMinor: 0, workerBasePayoutMinor: 41000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 59900, basePriceMinor: 59900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 41000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 50, durationMaxMinutes: 75, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and cleaning of safely accessible serviceable components', 'Routine service labour described in the selected booking', 'Basic operational check after reassembly'],
@@ -82,7 +86,7 @@ class WorkidaPriceBookData {
     ),
     'balcony_cleaning': PriceBookEntry(
       serviceId: 'balcony_cleaning', model: PriceBookPricingModel.perUnit, unit: 'balcony',
-      customerPriceMinor: 29900, visitFeeMinor: 0, workerBasePayoutMinor: 19000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 29900, basePriceMinor: 29900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 19000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 35, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Removing loose dust and sweeping the accessible balcony floor', 'Washing or mopping suitable accessible surfaces when water is available', 'Wiping accessible railing and ledge interiors'],
@@ -90,7 +94,7 @@ class WorkidaPriceBookData {
     ),
     'bathroom_cleaning': PriceBookEntry(
       serviceId: 'bathroom_cleaning', model: PriceBookPricingModel.perUnit, unit: 'bathroom',
-      customerPriceMinor: 44900, visitFeeMinor: 0, workerBasePayoutMinor: 30000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 44900, basePriceMinor: 44900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 30000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 50, durationMaxMinutes: 70, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Cleaning the selected toilet, basin, floor and accessible wall tiles', 'Wiping accessible taps, fittings and exterior surfaces', 'Rinsing and basic cleanup of the serviced bathroom'],
@@ -98,7 +102,7 @@ class WorkidaPriceBookData {
     ),
     'bathroom_fittings': PriceBookEntry(
       serviceId: 'bathroom_fittings', model: PriceBookPricingModel.perUnit, unit: 'fitting',
-      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 14900, basePriceMinor: 14900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection of the reported bathroom fitting installation issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
@@ -106,7 +110,7 @@ class WorkidaPriceBookData {
     ),
     'bed_frame_repair': PriceBookEntry(
       serviceId: 'bed_frame_repair', model: PriceBookPricingModel.tiered, unit: 'bed',
-      customerPriceMinor: 24900, visitFeeMinor: 0, workerBasePayoutMinor: 17000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 24900, basePriceMinor: 24900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 17000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 75, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment of the selected bed-frame repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
@@ -114,7 +118,7 @@ class WorkidaPriceBookData {
     ),
     'bedroom_cleaning': PriceBookEntry(
       serviceId: 'bedroom_cleaning', model: PriceBookPricingModel.perUnit, unit: 'room',
-      customerPriceMinor: 69900, visitFeeMinor: 0, workerBasePayoutMinor: 47500, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 69900, basePriceMinor: 69900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 47500, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 75, durationMaxMinutes: 120, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Dusting accessible furniture and room surfaces', 'Sweeping or vacuuming and mopping accessible floors', 'Basic room reset around movable everyday items'],
@@ -122,7 +126,7 @@ class WorkidaPriceBookData {
     ),
     'carpet_cleaning': PriceBookEntry(
       serviceId: 'carpet_cleaning', model: PriceBookPricingModel.perUnit, unit: 'small carpet',
-      customerPriceMinor: 39900, visitFeeMinor: 0, workerBasePayoutMinor: 26000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 39900, basePriceMinor: 39900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 26000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 40, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Dry vacuuming of the selected accessible carpet area', 'Suitable spot treatment and wet extraction where material permits', 'Basic cleanup and drying guidance'],
@@ -130,7 +134,7 @@ class WorkidaPriceBookData {
     ),
     'cctv_installation_repair': PriceBookEntry(
       serviceId: 'cctv_installation_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected cctv installation & repair', 'Basic operational and safety check after installation'],
@@ -138,7 +142,7 @@ class WorkidaPriceBookData {
     ),
     'ceiling_painting': PriceBookEntry(
       serviceId: 'ceiling_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment and basic preparation of the selected ceiling painting area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
@@ -146,7 +150,7 @@ class WorkidaPriceBookData {
     ),
     'chimney_repair_service': PriceBookEntry(
       serviceId: 'chimney_repair_service', model: PriceBookPricingModel.inspection, unit: 'appliance',
-      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected chimney repair & service issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -154,7 +158,7 @@ class WorkidaPriceBookData {
     ),
     'cooler_repair': PriceBookEntry(
       serviceId: 'cooler_repair', model: PriceBookPricingModel.inspection, unit: 'cooler',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected cooler repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -162,7 +166,7 @@ class WorkidaPriceBookData {
     ),
     'decorative_light_installation': PriceBookEntry(
       serviceId: 'decorative_light_installation', model: PriceBookPricingModel.tiered, unit: 'fixture',
-      customerPriceMinor: 49900, visitFeeMinor: 0, workerBasePayoutMinor: 34000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 49900, basePriceMinor: 49900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 34000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 45, durationMaxMinutes: 90, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected decorative light installation', 'Basic operational and safety check after installation'],
@@ -170,7 +174,7 @@ class WorkidaPriceBookData {
     ),
     'dishwasher_repair': PriceBookEntry(
       serviceId: 'dishwasher_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected dishwasher repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -178,7 +182,7 @@ class WorkidaPriceBookData {
     ),
     'door_repair': PriceBookEntry(
       serviceId: 'door_repair', model: PriceBookPricingModel.tiered, unit: 'door',
-      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 14900, basePriceMinor: 14900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 20, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment of the selected door & hinge repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
@@ -186,7 +190,7 @@ class WorkidaPriceBookData {
     ),
     'doorbell_repair': PriceBookEntry(
       serviceId: 'doorbell_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 14900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 10500, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 14900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 10500, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 20, durationMaxMinutes: 40, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected doorbell repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -194,7 +198,7 @@ class WorkidaPriceBookData {
     ),
     'doors_grills_painting': PriceBookEntry(
       serviceId: 'doors_grills_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment and basic preparation of the selected doors, windows & grills area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
@@ -202,7 +206,7 @@ class WorkidaPriceBookData {
     ),
     'drain_blockage': PriceBookEntry(
       serviceId: 'drain_blockage', model: PriceBookPricingModel.tiered, unit: 'drain',
-      customerPriceMinor: 34900, visitFeeMinor: 0, workerBasePayoutMinor: 24000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 34900, basePriceMinor: 34900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 24000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 45, durationMaxMinutes: 90, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection of the reported drain blockage clearing issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
@@ -214,7 +218,7 @@ class WorkidaPriceBookData {
     ),
     'dth_set_top_box': PriceBookEntry(
       serviceId: 'dth_set_top_box', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected dth / set-top box issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -222,7 +226,7 @@ class WorkidaPriceBookData {
     ),
     'exterior_wall_painting': PriceBookEntry(
       serviceId: 'exterior_wall_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
-      customerPriceMinor: 0, visitFeeMinor: 49900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 35000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 49900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 35000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment and basic preparation of the selected exterior wall painting area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
@@ -230,7 +234,7 @@ class WorkidaPriceBookData {
     ),
     'fan_cleaning': PriceBookEntry(
       serviceId: 'fan_cleaning', model: PriceBookPricingModel.perUnit, unit: 'fan',
-      customerPriceMinor: 9900, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 9900, basePriceMinor: 9900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 10, durationMaxMinutes: 15, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Dusting and wiping accessible fan blades, body and canopy', 'Cleaning the stated number and type of safely reachable fans', 'Basic cleanup of fallen dust below the work area'],
@@ -238,7 +242,7 @@ class WorkidaPriceBookData {
     ),
     'fan_installation_repair': PriceBookEntry(
       serviceId: 'fan_installation_repair', model: PriceBookPricingModel.tiered, unit: 'fan',
-      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 14900, basePriceMinor: 14900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 20, durationMaxMinutes: 45, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected fan repair & installation', 'Basic operational and safety check after installation'],
@@ -246,7 +250,7 @@ class WorkidaPriceBookData {
     ),
     'fan_regulator_capacitor': PriceBookEntry(
       serviceId: 'fan_regulator_capacitor', model: PriceBookPricingModel.perUnit, unit: 'fan',
-      customerPriceMinor: 9900, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 9900, basePriceMinor: 9900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected fan regulator / capacitor issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -254,7 +258,7 @@ class WorkidaPriceBookData {
     ),
     'floor_scrubbing': PriceBookEntry(
       serviceId: 'floor_scrubbing', model: PriceBookPricingModel.tiered, unit: 'up to 500 sq ft',
-      customerPriceMinor: 89900, visitFeeMinor: 0, workerBasePayoutMinor: 60000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 89900, basePriceMinor: 89900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 60000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 90, durationMaxMinutes: 150, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Sweeping or vacuuming the selected accessible floor area', 'Material-appropriate manual or machine scrubbing', 'Removal of cleaning residue from the treated area'],
@@ -267,7 +271,7 @@ class WorkidaPriceBookData {
     ),
     'full_home_painting': PriceBookEntry(
       serviceId: 'full_home_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
-      customerPriceMinor: 0, visitFeeMinor: 49900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 35000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 49900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 35000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment and basic preparation of the selected full-home interior painting area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
@@ -275,7 +279,7 @@ class WorkidaPriceBookData {
     ),
     'furniture_assembly': PriceBookEntry(
       serviceId: 'furniture_assembly', model: PriceBookPricingModel.tiered, unit: 'item',
-      customerPriceMinor: 39900, visitFeeMinor: 0, workerBasePayoutMinor: 27000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 39900, basePriceMinor: 39900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 27000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 45, durationMaxMinutes: 120, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment of the selected furniture assembly scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
@@ -288,7 +292,7 @@ class WorkidaPriceBookData {
     ),
     'furniture_repair': PriceBookEntry(
       serviceId: 'furniture_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 14900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 10500, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 14900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 10500, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 20, durationMaxMinutes: 40, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment of the selected furniture repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
@@ -296,7 +300,7 @@ class WorkidaPriceBookData {
     ),
     'geyser_repair': PriceBookEntry(
       serviceId: 'geyser_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
-      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected geyser repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -304,7 +308,7 @@ class WorkidaPriceBookData {
     ),
     'home_theatre_speaker': PriceBookEntry(
       serviceId: 'home_theatre_speaker', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 75, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected home theatre / speaker issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -312,7 +316,7 @@ class WorkidaPriceBookData {
     ),
     'household_help_session': PriceBookEntry(
       serviceId: 'household_help_session', model: PriceBookPricingModel.hourly, unit: 'hour',
-      customerPriceMinor: 19900, visitFeeMinor: 0, workerBasePayoutMinor: 14000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 14000,
+      customerPriceMinor: 19900, basePriceMinor: 19900, includedDurationMinutes: 30, hourlyRateMinor: 19900, billingIncrementMinutes: 15, visitFeeMinor: 0, workerBasePayoutMinor: 14000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 14000,
       durationMinMinutes: 60, durationMaxMinutes: 180, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Routine chores you select, worked in your chosen priority order', 'One verified helper reserved for the booked time block', 'Reasonable tidying of the immediate work areas before leaving'],
@@ -320,7 +324,7 @@ class WorkidaPriceBookData {
     ),
     'induction_cooktop_repair': PriceBookEntry(
       serviceId: 'induction_cooktop_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected induction / cooktop repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -328,7 +332,7 @@ class WorkidaPriceBookData {
     ),
     'inverter_ups_repair': PriceBookEntry(
       serviceId: 'inverter_ups_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected inverter / ups repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -336,7 +340,7 @@ class WorkidaPriceBookData {
     ),
     'kitchen_cleaning': PriceBookEntry(
       serviceId: 'kitchen_cleaning', model: PriceBookPricingModel.tiered, unit: 'kitchen',
-      customerPriceMinor: 79900, visitFeeMinor: 0, workerBasePayoutMinor: 55000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 79900, basePriceMinor: 79900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 55000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 90, durationMaxMinutes: 150, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Degreasing accessible counters, sink, platform and wall tiles', 'Wiping cabinet and appliance exteriors included in your selection', 'Sweeping and mopping the accessible kitchen floor'],
@@ -349,7 +353,7 @@ class WorkidaPriceBookData {
     ),
     'lighting_installation': PriceBookEntry(
       serviceId: 'lighting_installation', model: PriceBookPricingModel.perUnit, unit: 'fixture',
-      customerPriceMinor: 9900, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 9900, basePriceMinor: 9900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected light repair & installation', 'Basic operational and safety check after installation'],
@@ -357,7 +361,7 @@ class WorkidaPriceBookData {
     ),
     'lock_handle_installation': PriceBookEntry(
       serviceId: 'lock_handle_installation', model: PriceBookPricingModel.perUnit, unit: 'door',
-      customerPriceMinor: 19900, visitFeeMinor: 0, workerBasePayoutMinor: 13500, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 19900, basePriceMinor: 19900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 13500, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment of the selected door lock & handle installation scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
@@ -365,7 +369,7 @@ class WorkidaPriceBookData {
     ),
     'mattress_cleaning': PriceBookEntry(
       serviceId: 'mattress_cleaning', model: PriceBookPricingModel.perUnit, unit: 'mattress',
-      customerPriceMinor: 39900, visitFeeMinor: 0, workerBasePayoutMinor: 26000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 39900, basePriceMinor: 39900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 26000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Vacuuming accessible mattress surfaces and seams', 'Suitable spot treatment or extraction for the declared mattress', 'Basic cleanup around the treatment area'],
@@ -373,7 +377,7 @@ class WorkidaPriceBookData {
     ),
     'mcb_fuse_repair': PriceBookEntry(
       serviceId: 'mcb_fuse_repair', model: PriceBookPricingModel.perUnit, unit: 'MCB/fuse',
-      customerPriceMinor: 19900, visitFeeMinor: 0, workerBasePayoutMinor: 13500, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 19900, basePriceMinor: 19900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 13500, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 20, durationMaxMinutes: 45, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected mcb / fuse repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -381,7 +385,7 @@ class WorkidaPriceBookData {
     ),
     'microwave_repair': PriceBookEntry(
       serviceId: 'microwave_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected microwave repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -389,7 +393,7 @@ class WorkidaPriceBookData {
     ),
     'modular_kitchen_carpentry': PriceBookEntry(
       serviceId: 'modular_kitchen_carpentry', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment of the selected modular-kitchen cabinet repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
@@ -397,7 +401,7 @@ class WorkidaPriceBookData {
     ),
     'moving_assistance': PriceBookEntry(
       serviceId: 'moving_assistance', model: PriceBookPricingModel.hourly, unit: 'helper-hour',
-      customerPriceMinor: 29900, visitFeeMinor: 0, workerBasePayoutMinor: 21000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 21000,
+      customerPriceMinor: 29900, basePriceMinor: 29900, includedDurationMinutes: 30, hourlyRateMinor: 29900, billingIncrementMinutes: 15, visitFeeMinor: 0, workerBasePayoutMinor: 21000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 21000,
       durationMinMinutes: 60, durationMaxMinutes: 480, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Lifting, carrying, loading or unloading the items you declare', 'The confirmed number of helpers for the booked duration', 'Reasonable placement of handled items at the agreed pickup or drop area'],
@@ -405,7 +409,7 @@ class WorkidaPriceBookData {
     ),
     'outdoor_sensor_light': PriceBookEntry(
       serviceId: 'outdoor_sensor_light', model: PriceBookPricingModel.fixed, unit: 'fixture',
-      customerPriceMinor: 24900, visitFeeMinor: 0, workerBasePayoutMinor: 17000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 24900, basePriceMinor: 24900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 17000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected outdoor / sensor light issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -413,7 +417,7 @@ class WorkidaPriceBookData {
     ),
     'packing_help': PriceBookEntry(
       serviceId: 'packing_help', model: PriceBookPricingModel.hourly, unit: 'helper-hour',
-      customerPriceMinor: 24900, visitFeeMinor: 0, workerBasePayoutMinor: 17000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 17000,
+      customerPriceMinor: 24900, basePriceMinor: 24900, includedDurationMinutes: 30, hourlyRateMinor: 24900, billingIncrementMinutes: 15, visitFeeMinor: 0, workerBasePayoutMinor: 17000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 17000,
       durationMinMinutes: 60, durationMaxMinutes: 480, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Sorting and packing the household items you identify', 'Labelling and arranging packed boxes in the agreed area', 'Routine handling within the booked time and workload'],
@@ -421,7 +425,7 @@ class WorkidaPriceBookData {
     ),
     'pipe_leakage': PriceBookEntry(
       serviceId: 'pipe_leakage', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection of the reported pipe or tap leakage issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
@@ -429,7 +433,7 @@ class WorkidaPriceBookData {
     ),
     'post_construction_cleaning': PriceBookEntry(
       serviceId: 'post_construction_cleaning', model: PriceBookPricingModel.quote, unit: 'inspection',
-      customerPriceMinor: 0, visitFeeMinor: 49900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 35000, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 49900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 35000, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Removal of fine dust and loose residue from accessible selected areas', 'Wiping accessible fixtures and surfaces and cleaning floors', 'Collection of light cleaning waste after loose debris is removed'],
@@ -437,7 +441,7 @@ class WorkidaPriceBookData {
     ),
     'refrigerator_repair': PriceBookEntry(
       serviceId: 'refrigerator_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected refrigerator repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -445,7 +449,7 @@ class WorkidaPriceBookData {
     ),
     'room_painting': PriceBookEntry(
       serviceId: 'room_painting', model: PriceBookPricingModel.quote, unit: 'inspection',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment and basic preparation of the selected room painting area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
@@ -453,7 +457,7 @@ class WorkidaPriceBookData {
     ),
     'router_network_setup': PriceBookEntry(
       serviceId: 'router_network_setup', model: PriceBookPricingModel.fixed, unit: 'router',
-      customerPriceMinor: 29900, visitFeeMinor: 0, workerBasePayoutMinor: 20000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 29900, basePriceMinor: 29900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 20000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected router / network setup', 'Basic operational and safety check after installation'],
@@ -461,7 +465,7 @@ class WorkidaPriceBookData {
     ),
     'shelf_installation': PriceBookEntry(
       serviceId: 'shelf_installation', model: PriceBookPricingModel.perUnit, unit: 'shelf',
-      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 14900, basePriceMinor: 14900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 20, durationMaxMinutes: 40, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment of the selected shelf installation scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
@@ -469,7 +473,7 @@ class WorkidaPriceBookData {
     ),
     'sink_basin_installation': PriceBookEntry(
       serviceId: 'sink_basin_installation', model: PriceBookPricingModel.fixed, unit: 'unit',
-      customerPriceMinor: 49900, visitFeeMinor: 0, workerBasePayoutMinor: 34000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 49900, basePriceMinor: 49900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 34000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 60, durationMaxMinutes: 90, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection of the reported sink & basin installation issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
@@ -477,7 +481,7 @@ class WorkidaPriceBookData {
     ),
     'sofa_cleaning': PriceBookEntry(
       serviceId: 'sofa_cleaning', model: PriceBookPricingModel.perUnit, unit: '3-seat sofa',
-      customerPriceMinor: 49900, visitFeeMinor: 0, workerBasePayoutMinor: 33000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 49900, basePriceMinor: 49900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 33000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 40, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Dry vacuuming of accessible seats, backs and crevices', 'Material-appropriate spot treatment and extraction where suitable', 'Basic cleanup of the immediate work area'],
@@ -485,7 +489,7 @@ class WorkidaPriceBookData {
     ),
     'surface_preparation': PriceBookEntry(
       serviceId: 'surface_preparation', model: PriceBookPricingModel.quote, unit: 'inspection',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment and basic preparation of the selected putty & surface preparation area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
@@ -493,7 +497,7 @@ class WorkidaPriceBookData {
     ),
     'switch_socket_wiring_repair': PriceBookEntry(
       serviceId: 'switch_socket_wiring_repair', model: PriceBookPricingModel.perUnit, unit: 'point',
-      customerPriceMinor: 9900, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 9900, basePriceMinor: 9900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 6500, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected switch, socket & wiring repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -501,7 +505,7 @@ class WorkidaPriceBookData {
     ),
     'tank_pipeline_repair': PriceBookEntry(
       serviceId: 'tank_pipeline_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 45, durationMaxMinutes: 90, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection of the reported water-tank & pipeline repair issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
@@ -509,7 +513,7 @@ class WorkidaPriceBookData {
     ),
     'tap_mixer_replacement': PriceBookEntry(
       serviceId: 'tap_mixer_replacement', model: PriceBookPricingModel.perUnit, unit: 'basic tap',
-      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 14900, basePriceMinor: 14900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 15, durationMaxMinutes: 30, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection of the reported tap & mixer replacement issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
@@ -517,7 +521,7 @@ class WorkidaPriceBookData {
     ),
     'texture_accent_wall': PriceBookEntry(
       serviceId: 'texture_accent_wall', model: PriceBookPricingModel.quote, unit: 'inspection',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 22000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 45, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment and basic preparation of the selected texture & accent wall area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
@@ -525,7 +529,7 @@ class WorkidaPriceBookData {
     ),
     'toilet_flush_repair': PriceBookEntry(
       serviceId: 'toilet_flush_repair', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection of the reported toilet & flush repair issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
@@ -533,7 +537,7 @@ class WorkidaPriceBookData {
     ),
     'tv_installation': PriceBookEntry(
       serviceId: 'tv_installation', model: PriceBookPricingModel.tiered, unit: 'TV',
-      customerPriceMinor: 39900, visitFeeMinor: 0, workerBasePayoutMinor: 27000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 39900, basePriceMinor: 39900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 27000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 75, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Confirming the selected installation point and accessible connections', 'Standard installation labour for the selected tv installation', 'Basic operational and safety check after installation'],
@@ -546,7 +550,7 @@ class WorkidaPriceBookData {
     ),
     'tv_repair': PriceBookEntry(
       serviceId: 'tv_repair', model: PriceBookPricingModel.inspection, unit: 'TV',
-      customerPriceMinor: 0, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 24900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 17500, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected tv repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -554,7 +558,7 @@ class WorkidaPriceBookData {
     ),
     'voltage_power_issues': PriceBookEntry(
       serviceId: 'voltage_power_issues', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected voltage / power issues issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -562,7 +566,7 @@ class WorkidaPriceBookData {
     ),
     'wall_touch_up': PriceBookEntry(
       serviceId: 'wall_touch_up', model: PriceBookPricingModel.tiered, unit: 'small patch job',
-      customerPriceMinor: 69900, visitFeeMinor: 0, workerBasePayoutMinor: 48000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 69900, basePriceMinor: 69900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 48000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 120, durationMaxMinutes: 240, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment and basic preparation of the selected wall touch-up area', 'Painting labour for the surface and finish confirmed in the booking', 'Routine cleanup of tools and loose work residue from the immediate area'],
@@ -574,7 +578,7 @@ class WorkidaPriceBookData {
     ),
     'wardrobe_cabinet_repair': PriceBookEntry(
       serviceId: 'wardrobe_cabinet_repair', model: PriceBookPricingModel.tiered, unit: 'unit',
-      customerPriceMinor: 14900, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 14900, basePriceMinor: 14900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 10000, workerVisitPayoutMinor: 0, minimumOrderMinor: 19900, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 20, durationMaxMinutes: 60, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Assessment of the selected wardrobe & cabinet repair scope', 'Standard adjustment, repair or fitting labour agreed before work', 'Alignment and basic function check of the serviced item'],
@@ -582,7 +586,7 @@ class WorkidaPriceBookData {
     ),
     'washing_machine_repair': PriceBookEntry(
       serviceId: 'washing_machine_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
-      customerPriceMinor: 0, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 19900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 14000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected washing machine repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -590,7 +594,7 @@ class WorkidaPriceBookData {
     ),
     'water_pump_plumbing': PriceBookEntry(
       serviceId: 'water_pump_plumbing', model: PriceBookPricingModel.inspection, unit: 'visit',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 45, durationMaxMinutes: 90, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection of the reported water-pump connection issue', 'Standard labour on safely accessible fittings within the approved scope', 'Visible leak or flow check after the approved work'],
@@ -598,7 +602,7 @@ class WorkidaPriceBookData {
     ),
     'water_purifier_repair': PriceBookEntry(
       serviceId: 'water_purifier_repair', model: PriceBookPricingModel.inspection, unit: 'appliance',
-      customerPriceMinor: 0, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
+      customerPriceMinor: 0, basePriceMinor: 0, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 29900, workerBasePayoutMinor: 0, workerVisitPayoutMinor: 21000, minimumOrderMinor: 0, workerOvertimeRateMinor: 18000,
       durationMinMinutes: 30, durationMaxMinutes: 60, inspectionFeeAbsorbed: true, absorptionThresholdMinor: 49900,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Inspection and diagnosis of the selected water purifier repair issue', 'Standard repair labour within the issue confirmed before work begins', 'Basic functional and visible safety check after the approved work'],
@@ -606,7 +610,7 @@ class WorkidaPriceBookData {
     ),
     'whole_home_cleaning': PriceBookEntry(
       serviceId: 'whole_home_cleaning', model: PriceBookPricingModel.tiered, unit: 'apartment',
-      customerPriceMinor: 299900, visitFeeMinor: 0, workerBasePayoutMinor: 210000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 299900, basePriceMinor: 299900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 210000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 180, durationMaxMinutes: 300, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Dusting and wiping accessible surfaces in the rooms you select', 'Sweeping or vacuuming and mopping accessible floors', 'Selected bathroom cleaning and kitchen exterior-surface cleaning'],
@@ -622,7 +626,7 @@ class WorkidaPriceBookData {
     ),
     'window_cleaning': PriceBookEntry(
       serviceId: 'window_cleaning', model: PriceBookPricingModel.perUnit, unit: 'standard set',
-      customerPriceMinor: 29900, visitFeeMinor: 0, workerBasePayoutMinor: 19000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
+      customerPriceMinor: 29900, basePriceMinor: 29900, includedDurationMinutes: 0, hourlyRateMinor: 0, billingIncrementMinutes: 1, visitFeeMinor: 0, workerBasePayoutMinor: 19000, workerVisitPayoutMinor: 0, minimumOrderMinor: 0, workerOvertimeRateMinor: 12000,
       durationMinMinutes: 45, durationMaxMinutes: 75, inspectionFeeAbsorbed: false, absorptionThresholdMinor: 0,
       cityAdjustments: {'bengaluru': CityPriceAdjustment(1.00, 1.00), 'delhi_ncr': CityPriceAdjustment(1.00, 1.00), 'mumbai': CityPriceAdjustment(1.08, 1.08), 'hyderabad': CityPriceAdjustment(0.95, 0.95), 'pune': CityPriceAdjustment(0.98, 0.98), 'chennai': CityPriceAdjustment(0.95, 0.95), 'kolkata': CityPriceAdjustment(0.90, 0.90), 'ahmedabad': CityPriceAdjustment(0.90, 0.90), 'tier_2': CityPriceAdjustment(0.85, 0.85)},
       includedScope: ['Cleaning accessible glass panels on the selected safe side', 'Wiping accessible frames, tracks and sills', 'Removing ordinary dust, marks and loose residue'],

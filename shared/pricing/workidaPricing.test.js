@@ -25,30 +25,30 @@ test('price book exposes every active client service exactly once', () => {
   assert.equal(book.version, VERSION);
 });
 
-test('hourly household estimate has no hidden visit fee', () => {
+test('hourly household estimate includes 30 minutes then charges the hourly rate', () => {
   assert.deepEqual(calculateEstimate(helper, 60), {
     estimatedMinutes: 60,
     visitFeeMinor: 0,
     labourRateMinor: 19900,
     basePriceMinor: 19900,
-    includedDurationMinutes: 60,
+    includedDurationMinutes: 30,
     billingIncrementMinutes: 15,
-    labourAmountMinor: 19900,
-    estimatedTotalMinor: 19900,
-    workerPayoutMinor: 14000,
+    labourAmountMinor: 29850,
+    estimatedTotalMinor: 29850,
+    workerPayoutMinor: 21000,
     pricingModel: 'hourly',
     version: VERSION,
     currency: 'INR',
   });
 });
 
-test('three helper hours price and pay linearly', () => {
+test('three helper hours include the base period plus additional time', () => {
   const result = calculateFinal(helper, {
     estimatedMinutes: 180,
     verifiedActualMinutes: 180,
   });
-  assert.equal(result.customerLabourMinor, 59700);
-  assert.equal(result.workerLabourMinor, 42000);
+  assert.equal(result.customerLabourMinor, 69650);
+  assert.equal(result.workerLabourMinor, 49000);
 });
 
 test('existing v1 hourly snapshots remain billable during rollout', () => {
@@ -96,6 +96,23 @@ test('micro-service minimum order protects standalone dispatch economics', () =>
   assert.equal(calculateEstimate(fan, 10).estimatedTotalMinor, 19900);
 });
 
+test('legacy per-unit services use canonical fixed quantity pricing', () => {
+  const single = buildPricingConfig({
+    serviceId: 'bedroom_cleaning',
+    serviceType: 'helper',
+  });
+  const double = buildPricingConfig({
+    serviceId: 'bedroom_cleaning',
+    serviceType: 'helper',
+    quantity: 2,
+  });
+
+  assert.equal(single.pricingModel, 'perUnit');
+  assert.equal(double.minimumCustomerLabourMinor, single.minimumCustomerLabourMinor * 2);
+  assert.equal(double.estimatedDurationMinMinutes, single.estimatedDurationMinMinutes * 2);
+  assert.equal(double.estimatedDurationMaxMinutes, single.estimatedDurationMaxMinutes * 2);
+});
+
 test('tier variants select an exact scope and price', () => {
   const split = buildPricingConfig({
     serviceId: 'ac_installation',
@@ -137,8 +154,8 @@ test('unapproved overtime cannot increase either side', () => {
     estimatedMinutes: 60,
     verifiedActualMinutes: 180,
   });
-  assert.equal(result.customerLabourMinor, 19900);
-  assert.equal(result.workerLabourMinor, 14000);
+  assert.equal(result.customerLabourMinor, 29850);
+  assert.equal(result.workerLabourMinor, 21000);
 });
 
 test('approved overtime is capped by verified actual time', () => {
@@ -148,8 +165,8 @@ test('approved overtime is capped by verified actual time', () => {
     approvedOvertimeMinutes: 120,
   });
   assert.equal(result.approvedOvertimeMinutes, 15);
-  assert.equal(result.customerLabourMinor, 24875);
-  assert.equal(result.workerLabourMinor, 17500);
+  assert.equal(result.customerLabourMinor, 34825);
+  assert.equal(result.workerLabourMinor, 24500);
 });
 
 test('admin time-based pricing includes the base period then rounds extras', () => {

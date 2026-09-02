@@ -7,6 +7,12 @@ enum PricingWorkerType { helper, professional }
 
 enum PricingModel { fixed, hourly, inspection, quote, perUnit, tiered }
 
+String _canonicalPricingModelName(String value) => switch (value) {
+      'per_unit' => 'perUnit',
+      'time_based' => 'hourly',
+      _ => value,
+    };
+
 class Money {
   const Money._(this.minorUnits, this.currency);
 
@@ -155,7 +161,9 @@ class ServicePricingConfig {
 
   factory ServicePricingConfig.fromJson(Map<String, dynamic> json) {
     int minor(String key) => (json[key] as num?)?.toInt() ?? 0;
-    final modelName = json['pricingModel'] as String? ?? 'hourly';
+    final modelName = _canonicalPricingModelName(
+      json['pricingModel'] as String? ?? 'hourly',
+    );
     final workerTypeName = json['workerType'] as String? ?? 'professional';
     return ServicePricingConfig(
       serviceId: json['serviceId'] as String,
@@ -443,7 +451,9 @@ class WorkidaPricingCatalog {
             .toList(growable: false);
       }
       if (WorkidaPriceBookData.entries.containsKey(serviceId)) continue;
-      final modelName = json['pricingModel'] as String? ?? 'fixed';
+      final modelName = _canonicalPricingModelName(
+        json['pricingModel'] as String? ?? 'fixed',
+      );
       final base = (json['basePriceMinor'] as num?)?.toInt() ?? 0;
       final visit = (json['visitFeeMinor'] as num?)?.toInt() ?? 0;
       final included = (json['includedDurationMinutes'] as num?)?.toInt() ?? 0;
@@ -519,7 +529,10 @@ class WorkidaPricingCatalog {
     }
     final variants = variantsForService(service.id);
     final variant = _variantFromList(variants, variantId);
-    final remoteModel = remote?['pricingModel'] as String?;
+    final remoteModelValue = remote?['pricingModel'] as String?;
+    final remoteModel = remoteModelValue == null
+        ? null
+        : _canonicalPricingModelName(remoteModelValue);
     final model = remoteModel == null
         ? _model(entry.model)
         : PricingModel.values.firstWhere(
@@ -534,20 +547,22 @@ class WorkidaPricingCatalog {
     final remoteBase = (remote?['basePriceMinor'] as num?)?.toInt();
     final remoteWorkerBase =
         (remote?['workerBasePayoutMinor'] as num?)?.toInt();
-    final customerBase = (variant?.customerPriceMinor ??
-            remoteBase ??
-            entry.customerPriceMinor) *
-        multiplierQuantity;
+    final customerBase =
+        (variant?.customerPriceMinor ?? remoteBase ?? entry.basePriceMinor) *
+            multiplierQuantity;
     final workerBase = (variant?.workerPayoutMinor ??
             remoteWorkerBase ??
             entry.workerBasePayoutMinor) *
         multiplierQuantity;
-    final durationMin = variant?.durationMinMinutes ??
-        (remote?['estimatedDurationMinMinutes'] as num?)?.toInt() ??
-        entry.durationMinMinutes;
-    final durationMax = variant?.durationMaxMinutes ??
-        (remote?['estimatedDurationMaxMinutes'] as num?)?.toInt() ??
-        entry.durationMaxMinutes;
+    final durationQuantity = model == PricingModel.perUnit ? quantity : 1;
+    final durationMin = (variant?.durationMinMinutes ??
+            (remote?['estimatedDurationMinMinutes'] as num?)?.toInt() ??
+            entry.durationMinMinutes) *
+        durationQuantity;
+    final durationMax = (variant?.durationMaxMinutes ??
+            (remote?['estimatedDurationMaxMinutes'] as num?)?.toInt() ??
+            entry.durationMaxMinutes) *
+        durationQuantity;
     final customerLabour = _adjust(
       customerBase,
       adjustment.customerMultiplier,
@@ -561,7 +576,7 @@ class WorkidaPricingCatalog {
         ? _adjust(
             (remote?['hourlyRateMinor'] as num?)?.toInt() ??
                 variant?.customerPriceMinor ??
-                entry.customerPriceMinor,
+                entry.hourlyRateMinor,
             adjustment.customerMultiplier,
           )
         : 0;
@@ -587,8 +602,14 @@ class WorkidaPricingCatalog {
       workerHourlyRate: Money.inrPaise(overtimeWorker),
       customerBasePrice: Money.inrPaise(hourly ? customerLabour : 0),
       workerBasePayout: Money.inrPaise(hourly ? workerLabour : 0),
-      includedDurationMinutes: hourly ? 60 : 0,
-      billingIncrementMinutes: hourly ? 15 : 1,
+      includedDurationMinutes: hourly
+          ? (remote?['includedDurationMinutes'] as num?)?.toInt() ??
+              entry.includedDurationMinutes
+          : 0,
+      billingIncrementMinutes: hourly
+          ? (remote?['billingIncrementMinutes'] as num?)?.toInt() ??
+              entry.billingIncrementMinutes
+          : 1,
       customerVisitFee: Money.inrPaise(
         _adjust(
           (remote?['visitFeeMinor'] as num?)?.toInt() ?? entry.visitFeeMinor,
