@@ -36,6 +36,22 @@ function pricingPresentation(pricingModel, variants = []) {
   return { billingMode: 'fixed', fixedPriceKind: 'service' };
 }
 
+// The headline "from" figure shown in a catalogue card. Derived from the
+// effective (post-override) pricing so an admin price change is reflected in the
+// list, not just on the booking screen: the lowest option for a tiered service,
+// the visit fee for an assessment, otherwise the base price.
+function displayPriceMinorFor(service) {
+  const model = canonicalPricingModel(service.pricingModel);
+  const variants = service.variants || [];
+  if (variants.length > 0) {
+    return Math.min(...variants.map((variant) => variant.customerPriceMinor));
+  }
+  if (['inspection', 'quote'].includes(model)) {
+    return service.visitFeeMinor || 0;
+  }
+  return service.basePriceMinor ?? service.customerPriceMinor ?? 0;
+}
+
 async function ensurePricingAdminSchema(pool) {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS service_pricing_versions (
@@ -307,7 +323,7 @@ async function getEffectivePublicPriceBook(pool) {
       const override = overrides.get(service.serviceId);
       if (!override) return service;
       const variants = override.variants ?? service.variants ?? [];
-      return {
+      const merged = {
         ...service,
         ...override,
         includedScope: override.includedScope ?? service.includedScope ?? [],
@@ -315,6 +331,7 @@ async function getEffectivePublicPriceBook(pool) {
         variants,
         pricingModel: variants.length > 0 ? 'tiered' : override.pricingModel,
       };
+      return { ...merged, displayPriceMinor: displayPriceMinorFor(merged) };
     }),
   };
 }
@@ -783,6 +800,7 @@ module.exports = {
   buildEffectivePricingConfig,
   createCatalogService,
   ensurePricingAdminSchema,
+  displayPriceMinorFor,
   getEffectivePublicPriceBook,
   getEffectiveServiceOverride,
   listAdminPricingServices,

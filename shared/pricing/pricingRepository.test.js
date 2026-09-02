@@ -7,11 +7,51 @@ const { PricingError } = require('./workidaPricing');
 const {
   applyWorkerPayoutPolicy,
   createCatalogService,
+  displayPriceMinorFor,
+  getEffectivePublicPriceBook,
   listAdminPricingServices,
   normalizeAdminPricing,
   pricingPresentation,
   validateAdminPricing,
 } = require('./pricingRepository');
+
+// Minimal service_pricing_versions row shaped like the admin editor would save.
+function overrideRow(serviceId, overrides = {}) {
+  return {
+    service_id: serviceId,
+    pricing_model: 'fixed',
+    base_price_minor: 15900,
+    included_duration_minutes: 0,
+    hourly_rate_minor: 0,
+    billing_increment_minutes: 1,
+    visit_fee_minor: 0,
+    worker_base_payout_minor: 10000,
+    worker_hourly_rate_minor: 0,
+    worker_visit_payout_minor: 0,
+    estimated_duration_min_minutes: 50,
+    estimated_duration_max_minutes: 90,
+    active: true,
+    pricing_version: 'v2',
+    revision: 2,
+    effective_from: new Date(0),
+    created_at: new Date(0),
+    created_by: 'admin-1',
+    included_scope: null,
+    exclusions: null,
+    variants: null,
+    ...overrides,
+  };
+}
+
+function poolWithOverrides(rows) {
+  return {
+    query: async (sql) => {
+      if (/admin_catalog_services/.test(sql)) return { rows: [] };
+      if (/service_pricing_versions/.test(sql)) return { rows };
+      return { rows: [] };
+    },
+  };
+}
 
 function validHourly() {
   return {
@@ -271,4 +311,50 @@ test('admin creates an inactive service by cloning a dispatchable template', asy
   assert.equal(created.catalog.template.serviceId, 'premium_ac_installation');
   assert.ok(created.catalog.template.questions.length > 0);
   assert.ok(created.includedScope.length > 0);
+});
+
+test('displayPriceMinorFor tracks the effective price per model', () => {
+  assert.equal(
+    displayPriceMinorFor({ pricingModel: 'perUnit', basePriceMinor: 15900 }),
+    15900,
+  );
+  assert.equal(
+    displayPriceMinorFor({ pricingModel: 'inspection', visitFeeMinor: 24900 }),
+    24900,
+  );
+  assert.equal(
+    displayPriceMinorFor({
+      pricingModel: 'tiered',
+      basePriceMinor: 0,
+      variants: [
+        { customerPriceMinor: 49900 },
+        { customerPriceMinor: 29900 },
+        { customerPriceMinor: 79900 },
+      ],
+    }),
+    29900,
+  );
+});
+
+test('an admin price change is reflected in the public catalogue card price', async () => {
+  const pool = poolWithOverrides([
+    overrideRow('bedroom_cleaning', { pricing_model: 'perUnit', base_price_minor: 15900 }),
+  ]);
+  const book = await getEffectivePublicPriceBook(pool);
+  const bedroom = book.services.find((service) => service.serviceId === 'bedroom_cleaning');
+
+  assert.equal(bedroom.basePriceMinor, 15900);
+  assert.equal(
+    bedroom.displayPriceMinor,
+    15900,
+    'displayPriceMinor must follow the override, not the stale catalogue value',
+  );
+});
+
+test('services without an override keep their authored display price', async () => {
+  const pool = poolWithOverrides([]);
+  const book = await getEffectivePublicPriceBook(pool);
+  const bedroom = book.services.find((service) => service.serviceId === 'bedroom_cleaning');
+
+  assert.equal(bedroom.displayPriceMinor, 69900);
 });
