@@ -9,10 +9,10 @@ const {
   workerJob,
 } = require('../services/marketplaceTransaction');
 const operations = require('../services/marketplaceOperations');
+const { createWorkerAuth } = require('../middleware/workerAuth');
 
 const uuid = Joi.string().uuid().required();
 const idempotencyKey = Joi.string().uuid().required();
-const phone = Joi.string().pattern(/^[6-9]\d{9}$/).required();
 
 function customerCredentials(req) {
   const authorization = req.get('authorization') || '';
@@ -44,13 +44,21 @@ function validate(schema, input) {
   return value;
 }
 
-function createMarketplaceRouter(pool) {
+function createMarketplaceRouter(pool, { workerAuth = createWorkerAuth() } = {}) {
   const router = express.Router();
   const asyncRoute = (handler) => (req, res, next) =>
     Promise.resolve(handler(req, res, next)).catch(next);
   const get = (path, handler) => router.get(path, asyncRoute(handler));
   const post = (path, handler) => router.post(path, asyncRoute(handler));
   const patch = (path, handler) => router.patch(path, asyncRoute(handler));
+  // Worker routes: identity is taken from the verified Firebase token
+  // (req.workerPhone), never from the request body/query.
+  const workerGet = (path, handler) =>
+    router.get(path, workerAuth, asyncRoute(handler));
+  const workerPost = (path, handler) =>
+    router.post(path, workerAuth, asyncRoute(handler));
+  const workerPatch = (path, handler) =>
+    router.patch(path, workerAuth, asyncRoute(handler));
 
   get('/customer-tasks/:customerTaskId', async (req, res) => {
     const value = validate(Joi.object({ customerTaskId: uuid }), req.params);
@@ -60,19 +68,16 @@ function createMarketplaceRouter(pool) {
     res.json({ success: true, transaction: await transactionSnapshot(pool, job.id) });
   });
 
-  get('/jobs/:jobId', async (req, res) => {
-    const value = validate(
-      Joi.object({ jobId: uuid, phone }), { ...req.params, ...req.query }
-    );
-    const job = await workerJob(pool, value.jobId, value.phone);
+  workerGet('/jobs/:jobId', async (req, res) => {
+    const value = validate(Joi.object({ jobId: uuid }), { ...req.params });
+    const job = await workerJob(pool, value.jobId, req.workerPhone);
     if (!job) throw new MarketplaceError('Accepted job not found.', 404, 'JOB_NOT_FOUND');
     res.json({ success: true, transaction: await transactionSnapshot(pool, job.id) });
   });
 
-  post('/jobs/:jobId/requirements', async (req, res) => {
+  workerPost('/jobs/:jobId/requirements', async (req, res) => {
     const value = validate(Joi.object({
       jobId: uuid,
-      phone,
       kind: Joi.string().valid('material', 'special_tool').required(),
       description: Joi.string().trim().min(2).max(500).required(),
       quantity: Joi.string().trim().max(80).allow('', null),
@@ -82,6 +87,7 @@ function createMarketplaceRouter(pool) {
       idempotencyKey,
       segmentIdempotencyKey: idempotencyKey,
     }), { ...req.params, ...req.body });
+    value.phone = req.workerPhone;
     const requirement = await operations.createRequirement(pool, value);
     res.status(201).json({ success: true, requirement });
   });
@@ -99,19 +105,19 @@ function createMarketplaceRouter(pool) {
     res.json({ success: true, requirement });
   });
 
-  patch('/jobs/:jobId/requirements/:requirementId/confirm', async (req, res) => {
+  workerPatch('/jobs/:jobId/requirements/:requirementId/confirm', async (req, res) => {
     const value = validate(Joi.object({
-      jobId: uuid, requirementId: uuid, phone, idempotencyKey,
+      jobId: uuid, requirementId: uuid, idempotencyKey,
       segmentIdempotencyKey: idempotencyKey,
     }), { ...req.params, ...req.body });
+    value.phone = req.workerPhone;
     const requirement = await operations.confirmRequirementByWorker(pool, value);
     res.json({ success: true, requirement });
   });
 
-  post('/jobs/:jobId/time-segments', async (req, res) => {
+  workerPost('/jobs/:jobId/time-segments', async (req, res) => {
     const value = validate(Joi.object({
       jobId: uuid,
-      phone,
       segmentType: Joi.string().valid(
         'working', 'customer_waiting', 'worker_break', 'worker_delay',
         'system_pause', 'material_wait', 'special_tool_wait'
@@ -120,14 +126,14 @@ function createMarketplaceRouter(pool) {
       idempotencyKey,
       eventIdempotencyKey: idempotencyKey,
     }), { ...req.params, ...req.body });
+    value.phone = req.workerPhone;
     const segment = await operations.startTimeSegment(pool, value);
     res.status(201).json({ success: true, segment });
   });
 
-  post('/jobs/:jobId/additional-work', async (req, res) => {
+  workerPost('/jobs/:jobId/additional-work', async (req, res) => {
     const value = validate(Joi.object({
       jobId: uuid,
-      phone,
       description: Joi.string().trim().min(2).max(1000).required(),
       additionalLabour: Joi.number().integer().min(1).max(1000000).required(),
       estimatedMinutes: Joi.number().integer().min(1).max(10080).required(),
@@ -136,6 +142,7 @@ function createMarketplaceRouter(pool) {
       expiresInMinutes: Joi.number().integer().min(5).max(1440).default(30),
       idempotencyKey,
     }), { ...req.params, ...req.body });
+    value.phone = req.workerPhone;
     const request = await operations.requestAdditionalWork(pool, value);
     res.status(201).json({ success: true, request });
   });
@@ -153,10 +160,9 @@ function createMarketplaceRouter(pool) {
     res.json({ success: true, request });
   });
 
-  post('/jobs/:jobId/completion-evidence', async (req, res) => {
+  workerPost('/jobs/:jobId/completion-evidence', async (req, res) => {
     const value = validate(Joi.object({
       jobId: uuid,
-      phone,
       kind: Joi.string().valid('before_photo', 'after_photo', 'worker_note').required(),
       uri: Joi.string().uri().max(2000).allow('', null),
       note: Joi.string().trim().max(1000).allow('', null),
@@ -165,19 +171,20 @@ function createMarketplaceRouter(pool) {
     if (!value.uri && !value.note) {
       throw new MarketplaceError('Evidence requires a file or note.', 400, 'VALIDATION_ERROR');
     }
+    value.phone = req.workerPhone;
     const evidence = await operations.addCompletionEvidence(pool, value);
     res.status(201).json({ success: true, evidence });
   });
 
-  post('/jobs/:jobId/safety', async (req, res) => {
+  workerPost('/jobs/:jobId/safety', async (req, res) => {
     const value = validate(Joi.object({
       jobId: uuid,
-      phone,
       category: Joi.string().trim().min(2).max(80).required(),
       description: Joi.string().trim().min(2).max(2000).required(),
       idempotencyKey,
       segmentIdempotencyKey: idempotencyKey,
     }), { ...req.params, ...req.body });
+    value.phone = req.workerPhone;
     const safetyCase = await operations.createWorkerSafetyCase(pool, value);
     res.status(201).json({ success: true, case: safetyCase });
   });

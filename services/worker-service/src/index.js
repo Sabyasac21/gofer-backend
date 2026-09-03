@@ -34,16 +34,18 @@ const {
   ensureDocumentSensitiveFieldsSchema,
   protectExtractedFields,
 } = require('./services/documentFieldEncryption');
-const { buildMockHyperVergeResult } = require('./services/kycProvider');
+const { buildManualReviewResult } = require('./services/kycProvider');
 const {
   validateAadhaarEnrollment,
 } = require('./services/aadhaarEnrollmentValidation');
 const { getFirebaseAuth } = require('./services/firebaseAdmin');
+const { createWorkerAuth } = require('./middleware/workerAuth');
 const { adminPricingSchema } = require('./services/adminPricingSchema');
 const {
   initializeMessaging,
   getMessagingStatus,
   ensureDispatchSchema,
+  markOfferDelivered,
   updatePresence,
   dispatchJob,
   respondToJob,
@@ -65,6 +67,7 @@ const {
   ensureMarketplaceSchema,
 } = require('./services/marketplaceTransaction');
 const { createMarketplaceRouter } = require('./routes/marketplace.routes');
+const { createWorkerAccountRouter } = require('./routes/workerAccount.routes');
 const {
   createCustomerRouter,
   ensureCustomerSchema,
@@ -101,6 +104,11 @@ app.use((req, res, next) => {
   next();
 });
 app.use(morgan('combined'));
+
+// Worker requests are authenticated by their Firebase ID token. The worker phone
+// and identity are taken from the verified token (req.workerPhone / req.firebaseUid),
+// never from client-supplied fields.
+const workerAuth = createWorkerAuth();
 
 // ─────────────────────────────────────────────────────────
 // MONITORING
@@ -153,17 +161,6 @@ app.get('/health', (req, res) => {
 // ─────────────────────────────────────────────────────────
 // ROUTES
 // ─────────────────────────────────────────────────────────
-
-app.get('/api/workers/me', (req, res) => {
-  res.json({
-    success: true,
-    worker: {
-      id: uuidv4(),
-      avgRating: 4.5,
-      totalTasksCompleted: 0
-    }
-  });
-});
 
 // Public customer-safe worker directory. This intentionally excludes phone,
 // documents, KYC provider details, and other enrollment PII.
@@ -222,10 +219,9 @@ app.get('/api/workers/verified', async (req, res, next) => {
   }
 });
 
-app.post('/api/workers/presence', async (req, res, next) => {
+app.post('/api/workers/presence', workerAuth, async (req, res, next) => {
   try {
     const { error, value } = Joi.object({
-      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
       online: Joi.boolean().required(),
       fcmToken: Joi.string().max(4096).allow('', null),
       platform: Joi.string().valid('android', 'ios').default('android'),
@@ -233,6 +229,7 @@ app.post('/api/workers/presence', async (req, res, next) => {
       longitude: Joi.number().min(-180).max(180).allow(null),
     }).validate(req.body, { stripUnknown: true });
     if (error) return res.status(400).json({ success: false, message: error.message });
+    value.phone = req.workerPhone;
     const presence = await updatePresence(pool, value);
     if (!presence) return res.status(404).json({ success: false, message: 'Verified worker not found' });
     res.json({ success: true, presence });
@@ -297,31 +294,24 @@ app.post('/api/jobs/dispatch', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-app.get('/api/jobs/pending', async (req, res, next) => {
+app.get('/api/jobs/pending', workerAuth, async (req, res, next) => {
   try {
-    const { error, value } = Joi.object({
-      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
-    }).validate(req.query, { stripUnknown: true });
-    if (error) {
-      return res.status(400).json({ success: false, message: error.message });
-    }
-    const job = await getPendingWorkerJob(pool, value.phone);
+    const job = await getPendingWorkerJob(pool, req.workerPhone);
     res.json({ success: true, job });
   } catch (error) {
     next(error);
   }
 });
 
-app.get('/api/workers/dashboard', async (req, res, next) => {
+app.get('/api/workers/dashboard', workerAuth, async (req, res, next) => {
   try {
     const { error, value } = Joi.object({
-      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
       limit: Joi.number().integer().min(1).max(100).default(50),
     }).validate(req.query, { stripUnknown: true });
     if (error) {
       return res.status(400).json({ success: false, message: error.message });
     }
-    const dashboard = await getWorkerDashboard(pool, value.phone, value.limit);
+    const dashboard = await getWorkerDashboard(pool, req.workerPhone, value.limit);
     if (!dashboard) {
       return res.status(404).json({
         success: false,
@@ -334,14 +324,26 @@ app.get('/api/workers/dashboard', async (req, res, next) => {
   }
 });
 
-app.post('/api/jobs/:id/respond', async (req, res, next) => {
+app.post('/api/jobs/:id/ack', workerAuth, async (req, res, next) => {
   try {
     const { error, value } = Joi.object({
-      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
+      id: Joi.string().uuid().required(),
+    }).validate(req.params, { stripUnknown: true });
+    if (error) return res.status(400).json({ success: false, message: error.message });
+    const ack = await markOfferDelivered(pool, value.id, req.workerPhone);
+    res.json({ success: true, delivered: ack != null, deliveredAt: ack?.deliveredAt ?? null });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/jobs/:id/respond', workerAuth, async (req, res, next) => {
+  try {
+    const { error, value } = Joi.object({
       decision: Joi.string().valid('accepted', 'rejected').required(),
     }).validate(req.body, { stripUnknown: true });
     if (error) return res.status(400).json({ success: false, message: error.message });
-    const response = await respondToJob(pool, req.params.id, value.phone, value.decision);
+    const response = await respondToJob(pool, req.params.id, req.workerPhone, value.decision);
     if (!response) return res.status(404).json({ success: false, message: 'Active job offer not found' });
     res.json({ success: true, response });
   } catch (error) { next(error); }
@@ -394,30 +396,28 @@ app.patch('/api/jobs/customer-task/:customerTaskId/status', async (req, res, nex
   } catch (error) { next(error); }
 });
 
-app.get('/api/jobs/:id/status', async (req, res, next) => {
+app.get('/api/jobs/:id/status', workerAuth, async (req, res, next) => {
   try {
     const { error, value } = Joi.object({
       id: Joi.string().uuid().required(),
-      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
-    }).validate({ ...req.params, ...req.query }, { stripUnknown: true });
+    }).validate(req.params, { stripUnknown: true });
     if (error) return res.status(400).json({ success: false, message: error.message });
-    const job = await getWorkerJobStatus(pool, value.id, value.phone);
+    const job = await getWorkerJobStatus(pool, value.id, req.workerPhone);
     if (!job) return res.status(404).json({ success: false, message: 'Accepted job not found' });
     res.json({ success: true, job });
   } catch (error) { next(error); }
 });
 
-app.patch('/api/jobs/:id/status', async (req, res, next) => {
+app.patch('/api/jobs/:id/status', workerAuth, async (req, res, next) => {
   try {
     const { error, value } = Joi.object({
       id: Joi.string().uuid().required(),
-      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
       status: Joi.string()
         .valid('arrived', 'started', 'completion_requested', 'completed', 'cancelled')
         .required(),
     }).validate({ ...req.params, ...req.body }, { stripUnknown: true });
     if (error) return res.status(400).json({ success: false, message: error.message });
-    const job = await updateJobStatusByWorker(pool, value.id, value.phone, value.status);
+    const job = await updateJobStatusByWorker(pool, value.id, req.workerPhone, value.status);
     if (!job) {
       return res.status(409).json({
         success: false,
@@ -428,18 +428,9 @@ app.patch('/api/jobs/:id/status', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-app.get('/api/workers/enrollments/status', async (req, res, next) => {
+app.get('/api/workers/enrollments/status', workerAuth, async (req, res, next) => {
   try {
-    const { error, value } = Joi.object({
-      phone: Joi.string().pattern(/^[6-9]\d{9}$/).required()
-    }).validate(req.query, { stripUnknown: true });
-
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: 'Enter a valid 10 digit mobile number'
-      });
-    }
+    const value = { phone: req.workerPhone };
 
     const result = await pool.query(
       `
@@ -723,7 +714,7 @@ function consentTextForVersion(version) {
   return `Workida worker verification consent ${version}: I allow Workida to verify my identity, documents, selfie, background, and eligibility through internal review and third-party verification providers for customer safety.`;
 }
 
-app.post('/api/workers/enrollments', async (req, res, next) => {
+app.post('/api/workers/enrollments', workerAuth, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const { error, value } = enrollmentSchema.validate(req.body, {
@@ -738,6 +729,9 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
         errors: error.details.map((detail) => detail.message)
       });
     }
+
+    // Identity comes from the verified token, not the submitted form.
+    value.phone = req.workerPhone;
 
     if (
       value.enrollmentTypes.includes('professional') &&
@@ -808,7 +802,7 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
         VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
           $11, $12, $13::jsonb, $14, $15, COALESCE($16, NOW()),
-          'under_review', 'kyc_pending', 'mock_hyperverge', 'not_started', NOW(), NOW()
+          'under_review', 'kyc_pending', 'manual_review', 'not_started', NOW(), NOW()
         )
         RETURNING
           id,
@@ -947,7 +941,7 @@ app.post('/api/workers/enrollments', async (req, res, next) => {
           raw_result,
           updated_at
         )
-        VALUES ($1, 'mock_hyperverge', 'not_started', '{}'::jsonb, NOW())
+        VALUES ($1, 'manual_review', 'not_started', '{}'::jsonb, NOW())
       `,
       [enrollment.id]
     );
@@ -1551,7 +1545,7 @@ app.post('/api/admin/workers/:id/kyc/simulate', async (req, res, next) => {
       });
     }
 
-    const result = buildMockHyperVergeResult({
+    const result = buildManualReviewResult({
       decision: value.decision,
       faceMatchScore: value.faceMatchScore,
       reason: value.reason,
@@ -1687,8 +1681,9 @@ app.post('/api/admin/workers/:id/kyc/simulate', async (req, res, next) => {
 // ERROR HANDLER
 // ─────────────────────────────────────────────────────────
 
+app.use('/api', createWorkerAccountRouter(pool, { workerAuth }));
 app.use('/api', createCustomerRouter(pool));
-app.use('/api/marketplace', createMarketplaceRouter(pool));
+app.use('/api/marketplace', createMarketplaceRouter(pool, { workerAuth }));
 app.use(errorHandler);
 
 // ─────────────────────────────────────────────────────────
