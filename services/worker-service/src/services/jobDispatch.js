@@ -204,7 +204,27 @@ async function ensureDispatchSchema(pool) {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY(job_id, worker_enrollment_id)
     );
+    ALTER TABLE worker_job_offers
+      ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
   `);
+}
+
+// Records that the worker's device actually received a job offer push, so
+// delivery rate is observable (OEM battery limits silently drop data messages).
+async function markOfferDelivered(pool, jobId, phone) {
+  const result = await pool.query(
+    `
+      UPDATE worker_job_offers offer
+      SET delivered_at = COALESCE(offer.delivered_at, NOW())
+      FROM worker_enrollments we
+      WHERE offer.job_id = $1
+        AND offer.worker_enrollment_id = we.id
+        AND we.phone = $2
+      RETURNING offer.delivered_at AS "deliveredAt"
+    `,
+    [jobId, phone],
+  );
+  return result.rows[0] || null;
 }
 
 async function updatePresence(pool, value) {
@@ -1337,6 +1357,7 @@ module.exports = {
   initializeMessaging,
   getMessagingStatus,
   ensureDispatchSchema,
+  markOfferDelivered,
   updatePresence,
   dispatchJob,
   respondToJob,

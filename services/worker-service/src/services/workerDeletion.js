@@ -12,8 +12,38 @@ async function ensureWorkerDeletionSchema(pool) {
     CREATE TABLE IF NOT EXISTS worker_enrollment_resets (
       phone_hash CHAR(64) PRIMARY KEY,
       deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
+    );
+    CREATE TABLE IF NOT EXISTS worker_deletion_requests (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      phone VARCHAR(10) NOT NULL,
+      reason TEXT,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      source VARCHAR(20) NOT NULL DEFAULT 'web',
+      requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      resolved_at TIMESTAMPTZ,
+      resolved_by VARCHAR(120)
+    );
+    CREATE INDEX IF NOT EXISTS worker_deletion_requests_status_idx
+      ON worker_deletion_requests(status, requested_at DESC);
   `);
+}
+
+// Public "request my data be deleted" path used by the website. It cannot delete
+// anything itself (the caller is unauthenticated); it records the request for an
+// admin to action via DELETE /api/admin/workers/:id.
+async function recordDeletionRequest(pool, {
+  phone,
+  reason,
+  source = 'web',
+  status = 'pending',
+}) {
+  const result = await pool.query(
+    `INSERT INTO worker_deletion_requests (phone, reason, source, status)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, requested_at AS "requestedAt"`,
+    [phone, reason || null, source, status],
+  );
+  return result.rows[0];
 }
 
 class WorkerDeletionError extends Error {
@@ -114,6 +144,12 @@ async function permanentlyDeleteWorker({
       'DELETE FROM admin_audit_logs WHERE worker_enrollment_id = $1',
       [workerId],
     );
+    await client.query(
+      `UPDATE worker_deletion_requests
+       SET status = 'resolved', resolved_at = NOW(), resolved_by = $2
+       WHERE phone = $1 AND status IN ('pending', 'verified')`,
+      [expectedPhone, adminId],
+    );
     const deleted = await client.query(
       'DELETE FROM worker_enrollments WHERE id = $1 RETURNING id',
       [workerId],
@@ -161,6 +197,7 @@ async function permanentlyDeleteWorker({
 module.exports = {
   ensureWorkerDeletionSchema,
   permanentlyDeleteWorker,
+  recordDeletionRequest,
   phoneResetHash,
   WorkerDeletionError,
 };
