@@ -121,7 +121,7 @@ class AppNotificationService {
   }
 
   Future<void> configureCustomer(CustomerApiService customerApi) async {
-    if (kIsWeb) return;
+    if (kIsWeb || !_api.isConfigured) return;
     final credentials = await customerApi.notificationCredentials();
     _credentials = NotificationApiCredentials(
       flavor: 'customer',
@@ -136,7 +136,7 @@ class AppNotificationService {
   }
 
   Future<void> configureWorker(String phone) async {
-    if (kIsWeb || phone.isEmpty) return;
+    if (kIsWeb || phone.isEmpty || !_api.isConfigured) return;
     final user = FirebaseAuth.instance.currentUser;
     final token = await user?.getIdToken();
     if (token == null || token.isEmpty) return;
@@ -153,10 +153,9 @@ class AppNotificationService {
   }
 
   Future<void> unregister() async {
-    final installationId = _installationId ?? await _getInstallationId();
-    if (_api.credentials != null) {
+    if (_api.isConfigured && _api.credentials != null) {
       try {
-        await _api.unregisterDevice(installationId);
+        await _api.unregisterDevice(_installationId ?? await _getInstallationId());
       } catch (_) {}
     }
     _credentials = null;
@@ -189,13 +188,18 @@ class AppNotificationService {
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.isEmpty) return;
     final package = await PackageInfo.fromPlatform();
-    await _api.registerDevice(
-      installationId: await _getInstallationId(),
-      platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
-      fcmToken: token,
-      appVersion: '${package.version}+${package.buildNumber}',
-      locale: PlatformDispatcher.instance.locale.toLanguageTag(),
-    );
+    try {
+      await _api.registerDevice(
+        installationId: await _getInstallationId(),
+        platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+        fcmToken: token,
+        appVersion: '${package.version}+${package.buildNumber}',
+        locale: PlatformDispatcher.instance.locale.toLanguageTag(),
+      );
+    } catch (_) {
+      // Best effort: the inbox service may be unconfigured or unreachable.
+      // Delivery of push notifications does not depend on this registration.
+    }
   }
 
   Future<String> _getInstallationId() async {
