@@ -43,6 +43,11 @@ class NotificationApiService {
 
   static String get _resolvedBaseUrl {
     if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
+    // No notification service is configured for this build. In debug, fall back
+    // to a local dev instance; in release, stay disabled rather than blocking
+    // every notification call on an unreachable host for the full socket
+    // timeout (~20s on Android).
+    if (kReleaseMode) return '';
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:3006';
     }
@@ -52,6 +57,10 @@ class NotificationApiService {
   final http.Client _client;
   final String _baseUrl;
   NotificationApiCredentials? credentials;
+
+  /// Whether a notification backend is actually reachable for this build.
+  /// Callers skip notification setup/teardown entirely when this is false.
+  bool get isConfigured => _baseUrl.isNotEmpty;
 
   Map<String, String> get _headers {
     final current = credentials;
@@ -107,15 +116,21 @@ class NotificationApiService {
   }
 
   Future<Map<String, dynamic>> _request(String method, String path, {Map<String, dynamic>? body}) async {
+    if (_baseUrl.isEmpty) {
+      throw const NotificationApiException(
+        'Notification service is not configured for this build.',
+      );
+    }
     final uri = Uri.parse('$_baseUrl$path');
-    final response = switch (method) {
-      'GET' => await _client.get(uri, headers: _headers),
-      'POST' => await _client.post(uri, headers: _headers, body: jsonEncode(body ?? const {})),
-      'PUT' => await _client.put(uri, headers: _headers, body: jsonEncode(body ?? const {})),
-      'PATCH' => await _client.patch(uri, headers: _headers, body: jsonEncode(body ?? const {})),
-      'DELETE' => await _client.delete(uri, headers: _headers),
+    final pending = switch (method) {
+      'GET' => _client.get(uri, headers: _headers),
+      'POST' => _client.post(uri, headers: _headers, body: jsonEncode(body ?? const {})),
+      'PUT' => _client.put(uri, headers: _headers, body: jsonEncode(body ?? const {})),
+      'PATCH' => _client.patch(uri, headers: _headers, body: jsonEncode(body ?? const {})),
+      'DELETE' => _client.delete(uri, headers: _headers),
       _ => throw UnsupportedError(method),
     };
+    final response = await pending.timeout(const Duration(seconds: 8));
     if (response.statusCode == 204) return const {};
     Map<String, dynamic> decoded = const {};
     try {
