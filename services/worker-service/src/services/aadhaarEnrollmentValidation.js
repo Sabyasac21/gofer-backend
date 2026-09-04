@@ -51,28 +51,33 @@ function validateAadhaarEnrollment({ idType, documents = [] }) {
   const frontNumber = normalizeAadhaarNumber(frontFields.documentNumber);
   const backNumber = normalizeAadhaarNumber(backFields.documentNumber);
 
-  if (frontFields.detectedDocumentType !== 'aadhaar') {
+  // Worker identity is confirmed by a human reviewer (kyc_provider =
+  // 'manual_review'); this gate is only a sanity filter that the applicant sent
+  // the right kind of images in the right order, not a machine verification.
+  // On-device OCR routinely cannot read the 12-digit number off the
+  // address-only Aadhaar back, nor the bilingual cardholder name off the front,
+  // so those fields are advisory and never block submission. Side/type
+  // classification is also absent from older installed builds, so it only fails
+  // when it is present and wrong (e.g. the two sides were swapped).
+  if (frontFields.detectedDocumentType &&
+      frontFields.detectedDocumentType !== 'aadhaar') {
     errors.push('The front image was not identified as Aadhaar.');
   }
-  if (frontFields.detectedDocumentSide !== 'front') {
+  if (frontFields.detectedDocumentSide &&
+      frontFields.detectedDocumentSide !== 'front') {
     errors.push('The first Aadhaar image must be the front side.');
   }
-  if (!frontNumber) {
-    errors.push('A valid 12-digit Aadhaar number was not detected on the front.');
-  }
-  if (!frontFields.documentName || frontFields.documentName.trim().length < 3) {
-    errors.push('The Aadhaar cardholder name was not detected on the front.');
-  }
 
-  if (backFields.detectedDocumentType !== 'aadhaar') {
+  if (backFields.detectedDocumentType &&
+      backFields.detectedDocumentType !== 'aadhaar') {
     errors.push('The back image was not identified as Aadhaar.');
   }
-  if (backFields.detectedDocumentSide !== 'back') {
+  if (backFields.detectedDocumentSide &&
+      backFields.detectedDocumentSide !== 'back') {
     errors.push('The second Aadhaar image must be the back side.');
   }
-  if (!backNumber) {
-    errors.push('A valid 12-digit Aadhaar number was not detected on the back.');
-  }
+
+  // Only meaningful when both sides actually yielded a machine-readable number.
   if (frontNumber && backNumber && frontNumber !== backNumber) {
     errors.push('The Aadhaar front and back numbers do not match.');
   }
