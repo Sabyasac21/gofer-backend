@@ -60,6 +60,28 @@ test('temporarily accepts legacy movement evidence during app migration', () => 
   assert.deepEqual(validateAadhaarEnrollment(enrollment), []);
 });
 
+test('accepts an Aadhaar back with no machine-readable number (address-only side)', () => {
+  const enrollment = validEnrollment();
+  delete enrollment.documents[1].extractedFields.documentNumber;
+  assert.deepEqual(validateAadhaarEnrollment(enrollment), []);
+});
+
+test('accepts a front whose bilingual name or number could not be OCR-read', () => {
+  const enrollment = validEnrollment();
+  delete enrollment.documents[0].extractedFields.documentName;
+  delete enrollment.documents[0].extractedFields.documentNumber;
+  assert.deepEqual(validateAadhaarEnrollment(enrollment), []);
+});
+
+test('accepts submissions from older builds that do not classify the document side', () => {
+  const enrollment = validEnrollment();
+  for (const index of [0, 1]) {
+    delete enrollment.documents[index].extractedFields.detectedDocumentSide;
+    delete enrollment.documents[index].extractedFields.detectedDocumentType;
+  }
+  assert.deepEqual(validateAadhaarEnrollment(enrollment), []);
+});
+
 test('rejects a non-Aadhaar enrollment', () => {
   const enrollment = validEnrollment();
   enrollment.idType = 'pan';

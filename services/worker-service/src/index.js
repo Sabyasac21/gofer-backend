@@ -747,7 +747,9 @@ app.post('/api/workers/enrollments', workerAuth, async (req, res, next) => {
     if (aadhaarValidationErrors.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Aadhaar front, back and live selfie verification is required',
+        // Surface the first specific reason so the worker (and support) can see
+        // what to fix, instead of a generic "front, back and selfie required".
+        message: aadhaarValidationErrors[0],
         errors: aadhaarValidationErrors,
       });
     }
