@@ -97,13 +97,10 @@ test('rejects reversed Aadhaar sides', () => {
   assert.match(errors, /second Aadhaar image must be the back/);
 });
 
-test('rejects Aadhaar front and back belonging to different cards', () => {
+test('accepts a front/back Aadhaar number mismatch (small back-side print is unreliable to OCR)', () => {
   const enrollment = validEnrollment();
   enrollment.documents[1].extractedFields.documentNumber = '604068325141';
-  assert.match(
-    validateAadhaarEnrollment(enrollment).join(' '),
-    /front and back numbers do not match/,
-  );
+  assert.deepEqual(validateAadhaarEnrollment(enrollment), []);
 });
 
 test('rejects missing liveness evidence and failed validation', () => {

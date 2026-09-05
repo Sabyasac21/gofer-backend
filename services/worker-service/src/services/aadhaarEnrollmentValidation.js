@@ -48,8 +48,6 @@ function validateAadhaarEnrollment({ idType, documents = [] }) {
   const selfie = documentsByType.get('selfie');
   const frontFields = front.extractedFields || {};
   const backFields = back.extractedFields || {};
-  const frontNumber = normalizeAadhaarNumber(frontFields.documentNumber);
-  const backNumber = normalizeAadhaarNumber(backFields.documentNumber);
 
   // Worker identity is confirmed by a human reviewer (kyc_provider =
   // 'manual_review'); this gate is only a sanity filter that the applicant sent
@@ -77,10 +75,12 @@ function validateAadhaarEnrollment({ idType, documents = [] }) {
     errors.push('The second Aadhaar image must be the back side.');
   }
 
-  // Only meaningful when both sides actually yielded a machine-readable number.
-  if (frontNumber && backNumber && frontNumber !== backNumber) {
-    errors.push('The Aadhaar front and back numbers do not match.');
-  }
+  // The Aadhaar number is often printed in very small type on the back
+  // (when it appears there at all), so on-device OCR reading one digit
+  // wrong there is a real, unavoidable failure mode - not evidence the two
+  // images belong to different cards. A human reviewer confirms identity
+  // from the photos regardless, so - like every other OCR-derived signal
+  // above - a number mismatch is never blocking on its own.
 
   const localLivenessChecks = [
     'Camera-only selfie',
@@ -114,11 +114,6 @@ function validateAadhaarEnrollment({ idType, documents = [] }) {
   }
 
   return errors;
-}
-
-function normalizeAadhaarNumber(value) {
-  const normalized = String(value || '').replace(/\D/g, '');
-  return /^\d{12}$/.test(normalized) ? normalized : '';
 }
 
 module.exports = {
